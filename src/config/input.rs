@@ -15,114 +15,100 @@
 // You should have received a copy of the GNU General Public License
 // along with cancer.  If not, see <http://www.gnu.org/licenses/>.
 
+use platform::{key, Key};
 use toml;
-use platform::{Key, key};
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct Input {
-	prefix: Key,
-	mouse:  bool,
-	locale: Option<String>,
+    prefix: Key,
+    mouse: bool,
+    locale: Option<String>,
 }
 
 impl Default for Input {
-	fn default() -> Self {
-		Input {
-			prefix: Key::new("a".to_string().into(), key::LOGO, Default::default()),
-			mouse:  true,
-			locale: None,
-		}
-	}
+    fn default() -> Self {
+        Input {
+            prefix: Key::new("a".to_string().into(), key::LOGO, Default::default()),
+            mouse: true,
+            locale: None,
+        }
+    }
 }
 
 impl Input {
-	pub fn load(&mut self, table: &toml::value::Table) {
-		if let Some(value) = table.get("prefix").and_then(|v| v.as_str()) {
-			self.prefix = to_key(value);
-		}
+    pub fn load(&mut self, table: &toml::value::Table) {
+        if let Some(value) = table.get("prefix").and_then(|v| v.as_str()) {
+            self.prefix = to_key(value);
+        }
 
-		if let Some(value) = table.get("mouse").and_then(|v| v.as_bool()) {
-			self.mouse = value;
-		}
+        if let Some(value) = table.get("mouse").and_then(|v| v.as_bool()) {
+            self.mouse = value;
+        }
 
-		if let Some(value) = table.get("locale").and_then(|v| v.as_str()) {
-			self.locale = Some(value.into());
-		}
-	}
+        if let Some(value) = table.get("locale").and_then(|v| v.as_str()) {
+            self.locale = Some(value.into());
+        }
+    }
 
-	pub fn prefix(&self) -> &Key {
-		&self.prefix
-	}
+    pub fn prefix(&self) -> &Key {
+        &self.prefix
+    }
 
-	pub fn mouse(&self) -> bool {
-		self.mouse
-	}
+    pub fn mouse(&self) -> bool {
+        self.mouse
+    }
 
-	pub fn locale(&self) -> Option<&str> {
-		self.locale.as_ref().map(AsRef::as_ref)
-	}
+    pub fn locale(&self) -> Option<&str> {
+        self.locale.as_ref().map(AsRef::as_ref)
+    }
 }
 
 fn to_key<T: AsRef<str>>(value: T) -> Key {
-	let     value     = value.as_ref();
-	let mut modifiers = value.split('-').collect::<Vec<&str>>();
-	let     button    = modifiers.pop().unwrap().to_lowercase();
+    let value = value.as_ref();
+    let mut modifiers = value.split('-').collect::<Vec<&str>>();
+    let button = modifiers.pop().unwrap().to_lowercase();
 
-	let modifiers = modifiers.iter().fold(Default::default(), |acc, modifier|
-		match *modifier {
-			"C" => acc | key::CTRL,
-			"A" => acc | key::ALT,
-			"S" => acc | key::SHIFT,
-			"L" => acc | key::LOGO,
-			_   => acc,
-		});
+    let modifiers = modifiers
+        .iter()
+        .fold(Default::default(), |acc, modifier| match *modifier {
+            "C" => acc | key::CTRL,
+            "A" => acc | key::ALT,
+            "S" => acc | key::SHIFT,
+            "L" => acc | key::LOGO,
+            _ => acc,
+        });
 
-	let key = match &*button {
-		"esc" =>
-			key::Button::Escape.into(),
+    let key = match &*button {
+        "esc" => key::Button::Escape.into(),
 
-		"backspace" | "bs" =>
-			key::Button::Backspace.into(),
+        "backspace" | "bs" => key::Button::Backspace.into(),
 
-		"enter" | "return" =>
-			key::Button::Enter.into(),
+        "enter" | "return" => key::Button::Enter.into(),
 
-		"delete" | "del" =>
-			key::Button::Delete.into(),
+        "delete" | "del" => key::Button::Delete.into(),
 
-		"insert" | "ins" =>
-			key::Button::Insert.into(),
+        "insert" | "ins" => key::Button::Insert.into(),
 
-		"home" =>
-			key::Button::Home.into(),
+        "home" => key::Button::Home.into(),
 
-		"end" =>
-			key::Button::End.into(),
+        "end" => key::Button::End.into(),
 
-		"pageup" | "pagup" | "pup" | "previous" | "prev" | "prior" =>
-			key::Button::PageUp.into(),
+        "pageup" | "pagup" | "pup" | "previous" | "prev" | "prior" => key::Button::PageUp.into(),
 
-		"pagedown" | "pagdown" | "pdown" | "next" =>
-			key::Button::PageDown.into(),
+        "pagedown" | "pagdown" | "pdown" | "next" => key::Button::PageDown.into(),
 
-		"up" =>
-			key::Button::Up.into(),
+        "up" => key::Button::Up.into(),
 
-		"down" =>
-			key::Button::Down.into(),
+        "down" => key::Button::Down.into(),
 
-		"right" =>
-			key::Button::Right.into(),
+        "right" => key::Button::Right.into(),
 
-		"left" =>
-			key::Button::Left.into(),
+        "left" => key::Button::Left.into(),
 
-		"menu" =>
-			key::Button::Menu.into(),
+        "menu" => key::Button::Menu.into(),
 
-		_ =>
-			button.into()
-	};
+        _ => button.into(),
+    };
 
-	Key::new(key, modifiers, Default::default())
+    Key::new(key, modifiers, Default::default())
 }

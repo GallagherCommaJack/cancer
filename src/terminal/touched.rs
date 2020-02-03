@@ -15,201 +15,203 @@
 // You should have received a copy of the GNU General Public License
 // along with cancer.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::mem;
+use fnv::FnvHasher;
+use picto::iter::Coordinates;
+use picto::Region;
 use std::collections::{hash_set, HashSet};
 use std::hash::BuildHasherDefault;
-use fnv::FnvHasher;
-use picto::Region;
-use picto::iter::Coordinates;
+use std::mem;
 
 /// Object to handle cells being touched.
 #[derive(Eq, PartialEq, Clone, Default, Debug)]
 pub struct Touched {
-	all:      bool,
-	line:     HashSet<u32, BuildHasherDefault<FnvHasher>>,
-	position: HashSet<(u32, u32), BuildHasherDefault<FnvHasher>>,
+    all: bool,
+    line: HashSet<u32, BuildHasherDefault<FnvHasher>>,
+    position: HashSet<(u32, u32), BuildHasherDefault<FnvHasher>>,
 }
 
 impl Touched {
-	/// Mark everything as touched.
-	pub fn all(&mut self) -> &mut Self {
-		self.all = true;
-		self
-	}
+    /// Mark everything as touched.
+    pub fn all(&mut self) -> &mut Self {
+        self.all = true;
+        self
+    }
 
-	/// Mark the given line as touched.
-	pub fn line(&mut self, line: u32) -> &mut Self {
-		if !self.all {
-			self.line.insert(line);
-		}
+    /// Mark the given line as touched.
+    pub fn line(&mut self, line: u32) -> &mut Self {
+        if !self.all {
+            self.line.insert(line);
+        }
 
-		self
-	}
+        self
+    }
 
-	/// Mark the given coordinates as touched.
-	pub fn mark(&mut self, x: u32, y: u32) -> &mut Self {
-		if !self.all {
-			self.position.insert((x, y));
-		}
+    /// Mark the given coordinates as touched.
+    pub fn mark(&mut self, x: u32, y: u32) -> &mut Self {
+        if !self.all {
+            self.position.insert((x, y));
+        }
 
-		self
-	}
+        self
+    }
 
-	/// Mark the given coordinates as touched.
-	pub fn push(&mut self, pair: (u32, u32)) -> &mut Self {
-		if !self.all {
-			self.position.insert(pair);
-		}
+    /// Mark the given coordinates as touched.
+    pub fn push(&mut self, pair: (u32, u32)) -> &mut Self {
+        if !self.all {
+            self.position.insert(pair);
+        }
 
-		self
-	}
+        self
+    }
 
-	/// Create an iterator out of the touched markers.
-	pub fn iter(&mut self, region: Region) -> Iter {
-		Iter::new(region,
-			mem::replace(&mut self.all, false),
-			mem::replace(&mut self.line, Default::default()),
-			mem::replace(&mut self.position, Default::default()))
-	}
+    /// Create an iterator out of the touched markers.
+    pub fn iter(&mut self, region: Region) -> Iter {
+        Iter::new(
+            region,
+            mem::replace(&mut self.all, false),
+            mem::replace(&mut self.line, Default::default()),
+            mem::replace(&mut self.position, Default::default()),
+        )
+    }
 }
 
 /// Iterator over touched cells.
 pub struct Iter {
-	region: Region,
-	state:  State,
-	lines:  HashSet<u32, BuildHasherDefault<FnvHasher>>,
+    region: Region,
+    state: State,
+    lines: HashSet<u32, BuildHasherDefault<FnvHasher>>,
 
-	all:      bool,
-	line:     Option<HashSet<u32, BuildHasherDefault<FnvHasher>>>,
-	position: Option<HashSet<(u32, u32), BuildHasherDefault<FnvHasher>>>,
+    all: bool,
+    line: Option<HashSet<u32, BuildHasherDefault<FnvHasher>>>,
+    position: Option<HashSet<(u32, u32), BuildHasherDefault<FnvHasher>>>,
 }
 
 enum State {
-	None,
-	Done,
+    None,
+    Done,
 
-	All(Coordinates),
-	Lines(Option<(u32, u32)>, hash_set::IntoIter<u32>),
-	Positions(hash_set::IntoIter<(u32, u32)>),
+    All(Coordinates),
+    Lines(Option<(u32, u32)>, hash_set::IntoIter<u32>),
+    Positions(hash_set::IntoIter<(u32, u32)>),
 }
 
 impl Iter {
-	/// Create a new empty touched iterator.
-	pub fn empty() -> Self {
-		Iter {
-			region: Region::from(0, 0, 0, 0),
-			state:  State::Done,
-			lines:  Default::default(),
+    /// Create a new empty touched iterator.
+    pub fn empty() -> Self {
+        Iter {
+            region: Region::from(0, 0, 0, 0),
+            state: State::Done,
+            lines: Default::default(),
 
-			all:      false,
-			line:     None,
-			position: None,
-		}
-	}
+            all: false,
+            line: None,
+            position: None,
+        }
+    }
 
-	/// Create a new touched iterator.
-	pub fn new(region:   Region,
-	           all:      bool,
-	           line:     HashSet<u32, BuildHasherDefault<FnvHasher>>,
-	           position: HashSet<(u32, u32), BuildHasherDefault<FnvHasher>>)
-	-> Self {
-		let all = all ||
-			line.len() == region.height as usize ||
-			position.len() == (region.width * region.height) as usize;
+    /// Create a new touched iterator.
+    pub fn new(
+        region: Region,
+        all: bool,
+        line: HashSet<u32, BuildHasherDefault<FnvHasher>>,
+        position: HashSet<(u32, u32), BuildHasherDefault<FnvHasher>>,
+    ) -> Self {
+        let all = all
+            || line.len() == region.height as usize
+            || position.len() == (region.width * region.height) as usize;
 
-		Iter {
-			region: region,
-			state:  State::None,
-			lines:  line.clone(),
+        Iter {
+            region: region,
+            state: State::None,
+            lines: line.clone(),
 
-			all:      all,
-			line:     if all || line.is_empty() { None } else { Some(line) },
-			position: if all || position.is_empty() { None } else { Some(position) },
-		}
-	}
+            all: all,
+            line: if all || line.is_empty() {
+                None
+            } else {
+                Some(line)
+            },
+            position: if all || position.is_empty() {
+                None
+            } else {
+                Some(position)
+            },
+        }
+    }
 
-	/// Check if the iterator is for no cells in the view.
-	pub fn is_empty(&self) -> bool {
-		!self.all && self.line.is_none() && self.position.is_none()
-	}
+    /// Check if the iterator is for no cells in the view.
+    pub fn is_empty(&self) -> bool {
+        !self.all && self.line.is_none() && self.position.is_none()
+    }
 
-	/// Check if the iterator is for every cell in the view.
-	pub fn is_total(&self) -> bool {
-		self.all
-	}
+    /// Check if the iterator is for every cell in the view.
+    pub fn is_total(&self) -> bool {
+        self.all
+    }
 }
 
 impl Iterator for Iter {
-	type Item = (u32, u32);
+    type Item = (u32, u32);
 
-	fn next(&mut self) -> Option<Self::Item> {
-		loop {
-			match mem::replace(&mut self.state, State::None) {
-				State::Done => {
-					return None;
-				}
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            match mem::replace(&mut self.state, State::None) {
+                State::Done => {
+                    return None;
+                }
 
-				State::None => {
-					self.state = if self.all {
-						State::All(self.region.absolute())
-					}
-					else if let Some(line) = self.line.take() {
-						State::Lines(None, line.into_iter())
-					}
-					else if let Some(position) = self.position.take() {
-						State::Positions(position.into_iter())
-					}
-					else {
-						State::Done
-					};
-				}
+                State::None => {
+                    self.state = if self.all {
+                        State::All(self.region.absolute())
+                    } else if let Some(line) = self.line.take() {
+                        State::Lines(None, line.into_iter())
+                    } else if let Some(position) = self.position.take() {
+                        State::Positions(position.into_iter())
+                    } else {
+                        State::Done
+                    };
+                }
 
-				State::All(mut iter) => {
-					if let Some(value) = iter.next() {
-						self.state = State::All(iter);
+                State::All(mut iter) => {
+                    if let Some(value) = iter.next() {
+                        self.state = State::All(iter);
 
-						return Some(value);
-					}
-					else {
-						self.state = State::Done;
-					}
-				}
+                        return Some(value);
+                    } else {
+                        self.state = State::Done;
+                    }
+                }
 
-				State::Lines(mut cur, mut iter) => {
-					if let Some((x, y)) = cur.take() {
-						if x < self.region.width {
-							self.state = State::Lines(Some((x + 1, y)), iter);
+                State::Lines(mut cur, mut iter) => {
+                    if let Some((x, y)) = cur.take() {
+                        if x < self.region.width {
+                            self.state = State::Lines(Some((x + 1, y)), iter);
 
-							return Some((x, y));
-						}
-						else {
-							self.state = State::Lines(None, iter);
-						}
-					}
-					else if let Some(y) = iter.next() {
-						self.state = State::Lines(Some((0, y)), iter);
-					}
-					else if let Some(position) = self.position.take() {
-						self.state = State::Positions(position.into_iter());
-					}
-					else {
-						self.state = State::Done;
-					}
-				}
+                            return Some((x, y));
+                        } else {
+                            self.state = State::Lines(None, iter);
+                        }
+                    } else if let Some(y) = iter.next() {
+                        self.state = State::Lines(Some((0, y)), iter);
+                    } else if let Some(position) = self.position.take() {
+                        self.state = State::Positions(position.into_iter());
+                    } else {
+                        self.state = State::Done;
+                    }
+                }
 
-				State::Positions(mut iter) => {
-					if let Some((x, y)) = iter.next() {
-						self.state = State::Positions(iter);
+                State::Positions(mut iter) => {
+                    if let Some((x, y)) = iter.next() {
+                        self.state = State::Positions(iter);
 
-						if !self.lines.contains(&y) {
-							return Some((x, y));
-						}
-					}
-					else {
-						self.state = State::Done;
-					}
-				}
-			}
-		}
-	}
+                        if !self.lines.contains(&y) {
+                            return Some((x, y));
+                        }
+                    } else {
+                        self.state = State::Done;
+                    }
+                }
+            }
+        }
+    }
 }

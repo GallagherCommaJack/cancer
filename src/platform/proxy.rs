@@ -15,43 +15,45 @@
 // You should have received a copy of the GNU General Public License
 // along with cancer.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::sync::mpsc::Sender;
-
-use sys::cairo;
+use crossbeam_channel::{select, unbounded as channel, Sender};
 use error;
-use platform::{Event, Clipboard};
+use platform::{Clipboard, Event};
+use sys::cairo;
 
 #[allow(unused_variables)]
 pub trait Proxy: Send {
-	/// Get the Window dimensions.
-	fn dimensions(&self) -> (u32, u32);
+    /// Get the Window dimensions.
+    fn dimensions(&self) -> (u32, u32);
 
-	/// Create a Cairo surface.
-	fn surface(&self) -> error::Result<cairo::Surface>;
+    /// Create a Cairo surface.
+    fn surface(&self) -> error::Result<cairo::Surface>;
 
-	/// Prepare the proxy.
-	fn prepare(&mut self, manager: Sender<Event>) { }
+    /// Prepare the proxy.
+    fn prepare(&mut self, manager: Sender<Event>) {}
 
-	/// Resize the window.
-	fn resize(&mut self, width: u32, height: u32) { }
+    /// Resize the window.
+    fn resize(&mut self, width: u32, height: u32) {}
 
-	/// Set the window title.
-	fn set_title(&self, title: String) { }
+    /// Set the window title.
+    fn set_title(&self, title: String) {}
 
-	/// Change the clipboard contents.
-	fn copy(&self, name: Clipboard, value: String) { }
+    /// Change the clipboard contents.
+    fn copy(&self, name: Clipboard, value: String) {}
 
-	/// Request the clipboard contents.
-	fn paste(&self, name: Clipboard) { }
+    /// Request the clipboard contents.
+    fn paste(&self, name: Clipboard) {}
 
-	/// Ask senpai to notice you.
-	fn urgent(&self) { }
+    /// Ask senpai to notice you.
+    fn urgent(&self) {}
 
-	/// Render the inner block.
-	fn render<F: FnOnce()>(&mut self, surface: &mut cairo::Surface, f: F) {
-		f(); surface.flush();
-	}
+    /// Render the inner block.
+    fn render<F: FnOnce()>(&mut self, surface: &mut cairo::Surface, f: F) {
+        f();
+        surface.flush();
+    }
 
-	/// Open the given item.
-	fn open(&self, through: Option<&str>, value: &str) -> error::Result<()> { Ok(()) }
+    /// Open the given item.
+    fn open(&self, through: Option<&str>, value: &str) -> error::Result<()> {
+        Ok(())
+    }
 }

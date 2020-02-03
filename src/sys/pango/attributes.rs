@@ -15,42 +15,35 @@
 // You should have received a copy of the GNU General Public License
 // along with cancer.  If not, see <http://www.gnu.org/licenses/>.
 
-
+use super::{Style, Weight};
 use ffi::pango::*;
-use super::{Weight, Style};
 
 pub struct Attributes(pub *mut PangoAttrList);
 
 impl Attributes {
-	pub fn new() -> Self {
-		unsafe {
-			Attributes(pango_attr_list_new())
-		}
-	}
+    pub fn new() -> Self {
+        unsafe { Attributes(pango_attr_list_new()) }
+    }
 
-	pub fn weight(self, weight: Weight) -> Self {
-		unsafe {
-			pango_attr_list_insert(self.0,
-				pango_attr_weight_new(weight));
-		}
+    pub fn weight(self, weight: Weight) -> Self {
+        unsafe {
+            pango_attr_list_insert(self.0, pango_attr_weight_new(weight));
+        }
 
-		self
-	}
+        self
+    }
 
-	pub fn style(self, style: Style) -> Self {
-		unsafe {
-			pango_attr_list_insert(self.0,
-				pango_attr_style_new(style));
-		}
+    pub fn style(self, style: Style) -> Self {
+        unsafe {
+            pango_attr_list_insert(self.0, pango_attr_style_new(style));
+        }
 
-		self
-	}
+        self
+    }
 }
 
 impl Drop for Attributes {
-	fn drop(&mut self) {
-		unsafe {
-			pango_attr_list_unref(self.0)
-		}
-	}
+    fn drop(&mut self) {
+        unsafe { pango_attr_list_unref(self.0) }
+    }
 }

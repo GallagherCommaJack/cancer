@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU General Public License
 // along with cancer.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::rc::Rc;
 use std::ops::Deref;
+use std::rc::Rc;
 use unicode_segmentation::UnicodeSegmentation;
 
 use style::Style;
@@ -25,64 +25,73 @@ use terminal::Cell;
 /// Status bar.
 #[derive(Debug)]
 pub struct Status {
-	cols:  u32,
-	style: Rc<Style>,
+    cols: u32,
+    style: Rc<Style>,
 
-	inner:    Vec<Cell>,
-	mode:     String,
-	position: String,
+    inner: Vec<Cell>,
+    mode: String,
+    position: String,
 }
 
 impl Status {
-	/// Create a new status bar with the given style and columns.
-	pub fn new(style: Style, cols: u32) -> Self {
-		let style = Rc::new(style);
+    /// Create a new status bar with the given style and columns.
+    pub fn new(style: Style, cols: u32) -> Self {
+        let style = Rc::new(style);
 
-		Status {
-			cols:  cols,
-			style: style.clone(),
+        Status {
+            cols: cols,
+            style: style.clone(),
 
-			inner:    vec![Cell::empty(style.clone()); cols as usize],
-			mode:     "".into(),
-			position: "".into(),
-		}
-	}
+            inner: vec![Cell::empty(style.clone()); cols as usize],
+            mode: "".into(),
+            position: "".into(),
+        }
+    }
 
-	/// Change the mode shown in the status bar.
-	pub fn mode<T: Into<String>>(&mut self, string: T) {
-		let string = string.into();
+    /// Change the mode shown in the status bar.
+    pub fn mode<T: Into<String>>(&mut self, string: T) {
+        let string = string.into();
 
-		for (_, cell) in self.mode.graphemes(true).zip(self.inner.iter_mut()) {
-			cell.make_empty(self.style.clone());
-		}
+        for (_, cell) in self.mode.graphemes(true).zip(self.inner.iter_mut()) {
+            cell.make_empty(self.style.clone());
+        }
 
-		for (ch, cell) in string.graphemes(true).zip(self.inner.iter_mut()) {
-			cell.make_occupied(ch, self.style.clone());
-		}
+        for (ch, cell) in string.graphemes(true).zip(self.inner.iter_mut()) {
+            cell.make_occupied(ch, self.style.clone());
+        }
 
-		self.mode = string;
-	}
+        self.mode = string;
+    }
 
-	/// Change the cursor position shown in the status bar.
-	pub fn position(&mut self, (x, y): (u32, u32)) {
-		let format = format!("{}:{}", y, x);
+    /// Change the cursor position shown in the status bar.
+    pub fn position(&mut self, (x, y): (u32, u32)) {
+        let format = format!("{}:{}", y, x);
 
-		for (_, cell) in self.position.graphemes(true).rev().zip(self.inner.iter_mut().rev()) {
-			cell.make_empty(self.style.clone());
-		}
+        for (_, cell) in self
+            .position
+            .graphemes(true)
+            .rev()
+            .zip(self.inner.iter_mut().rev())
+        {
+            cell.make_empty(self.style.clone());
+        }
 
-		for (ch, cell) in format.graphemes(true).rev().zip(self.inner.iter_mut().rev()) {
-			cell.make_occupied(ch, self.style.clone());
-		}
+        for (ch, cell) in format
+            .graphemes(true)
+            .rev()
+            .zip(self.inner.iter_mut().rev())
+        {
+            cell.make_occupied(ch, self.style.clone());
+        }
 
-		self.position = format;
-	}
+        self.position = format;
+    }
 }
 
 impl Deref for Status {
-	type Target = Vec<Cell>;
+    type Target = Vec<Cell>;
 
-	fn deref(&self) -> &Self::Target {
-		&self.inner
-	}
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
 }

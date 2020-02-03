@@ -17,144 +17,140 @@
 
 use std::mem;
 
-use libc::c_int;
+use super::{Image, Operator, Surface};
 use ffi::cairo::*;
 use ffi::pango::*;
-use sys::pango;
+use libc::c_int;
 use picto::color::{Rgb, Rgba};
-use super::{Surface, Image, Operator};
+use sys::pango;
 
 pub struct Context(pub *mut cairo_t);
 
 impl Context {
-	pub fn new(surface: &Surface) -> Self {
-		unsafe {
-			Context(cairo_create(surface.0))
-		}
-	}
+    pub fn new(surface: &Surface) -> Self {
+        unsafe { Context(cairo_create(surface.0)) }
+    }
 
-	pub fn push(&mut self) {
-		unsafe {
-			cairo_push_group(self.0);
-		}
-	}
+    pub fn push(&mut self) {
+        unsafe {
+            cairo_push_group(self.0);
+        }
+    }
 
-	pub fn pop(&mut self) {
-		unsafe {
-			cairo_pop_group_to_source(self.0);
-		}
-	}
+    pub fn pop(&mut self) {
+        unsafe {
+            cairo_pop_group_to_source(self.0);
+        }
+    }
 
-	pub fn save(&mut self) {
-		unsafe {
-			cairo_save(self.0);
-		}
-	}
+    pub fn save(&mut self) {
+        unsafe {
+            cairo_save(self.0);
+        }
+    }
 
-	pub fn restore(&mut self) {
-		unsafe {
-			cairo_restore(self.0);
-		}
-	}
+    pub fn restore(&mut self) {
+        unsafe {
+            cairo_restore(self.0);
+        }
+    }
 
-	pub fn rectangle(&mut self, x: f64, y: f64, width: f64, height: f64) {
-		unsafe {
-			cairo_rectangle(self.0, x, y, width, height);
-		}
-	}
+    pub fn rectangle(&mut self, x: f64, y: f64, width: f64, height: f64) {
+        unsafe {
+            cairo_rectangle(self.0, x, y, width, height);
+        }
+    }
 
-	pub fn clip(&mut self) {
-		unsafe {
-			cairo_clip(self.0);
-		}
-	}
+    pub fn clip(&mut self) {
+        unsafe {
+            cairo_clip(self.0);
+        }
+    }
 
-	pub fn rgb(&mut self, px: &Rgb<f64>) {
-		unsafe {
-			cairo_set_source_rgb(self.0, px.red, px.green, px.blue);
-		}
-	}
+    pub fn rgb(&mut self, px: &Rgb<f64>) {
+        unsafe {
+            cairo_set_source_rgb(self.0, px.red, px.green, px.blue);
+        }
+    }
 
-	pub fn rgba(&mut self, px: &Rgba<f64>) {
-		unsafe {
-			cairo_set_source_rgba(self.0, px.red, px.green, px.blue, px.alpha);
-		}
-	}
+    pub fn rgba(&mut self, px: &Rgba<f64>) {
+        unsafe {
+            cairo_set_source_rgba(self.0, px.red, px.green, px.blue, px.alpha);
+        }
+    }
 
-	pub fn move_to(&mut self, x: f64, y: f64) {
-		unsafe {
-			cairo_move_to(self.0, x, y);
-		}
-	}
+    pub fn move_to(&mut self, x: f64, y: f64) {
+        unsafe {
+            cairo_move_to(self.0, x, y);
+        }
+    }
 
-	pub fn line_to(&mut self, x: f64, y: f64) {
-		unsafe {
-			cairo_line_to(self.0, x, y);
-		}
-	}
+    pub fn line_to(&mut self, x: f64, y: f64) {
+        unsafe {
+            cairo_line_to(self.0, x, y);
+        }
+    }
 
-	pub fn line_width(&mut self, w: f64) {
-		unsafe {
-			cairo_set_line_width(self.0, w);
-		}
-	}
+    pub fn line_width(&mut self, w: f64) {
+        unsafe {
+            cairo_set_line_width(self.0, w);
+        }
+    }
 
-	pub fn fill(&mut self) {
-		unsafe {
-			cairo_fill(self.0);
-		}
-	}
+    pub fn fill(&mut self) {
+        unsafe {
+            cairo_fill(self.0);
+        }
+    }
 
-	pub fn stroke(&mut self) {
-		unsafe {
-			cairo_stroke(self.0);
-		}
-	}
+    pub fn stroke(&mut self) {
+        unsafe {
+            cairo_stroke(self.0);
+        }
+    }
 
-	pub fn paint(&mut self) {
-		unsafe {
-			cairo_paint(self.0)
-		}
-	}
+    pub fn paint(&mut self) {
+        unsafe { cairo_paint(self.0) }
+    }
 
-	pub fn glyph<T: AsRef<str>>(&mut self, text: T, glyph: &pango::GlyphItem) {
-		let text = text.as_ref();
+    pub fn glyph<T: AsRef<str>>(&mut self, text: T, glyph: &pango::GlyphItem) {
+        let text = text.as_ref();
 
-		unsafe {
-			pango_cairo_show_glyph_item(self.0, text.as_ptr() as *const _, &glyph.0);
-		}
-	}
+        unsafe {
+            pango_cairo_show_glyph_item(self.0, text.as_ptr() as *const _, &glyph.0);
+        }
+    }
 
-	pub fn image(&mut self, image: &Image, x: f64, y: f64) {
-		unsafe {
-			let mut matrix  = mem::uninitialized();
-			cairo_matrix_init_translate(&mut matrix, -x, -y);
+    pub fn image(&mut self, image: &Image, x: f64, y: f64) {
+        unsafe {
+            let mut matrix = mem::uninitialized();
+            cairo_matrix_init_translate(&mut matrix, -x, -y);
 
-			let pattern = image.pattern();
-			cairo_pattern_set_matrix(pattern, &matrix);
+            let pattern = image.pattern();
+            cairo_pattern_set_matrix(pattern, &matrix);
 
-			cairo_set_source(self.0, pattern);
-			cairo_paint(self.0);
-		}
-	}
+            cairo_set_source(self.0, pattern);
+            cairo_paint(self.0);
+        }
+    }
 
-	pub fn operator(&mut self, operator: Operator) {
-		unsafe {
-			cairo_set_operator(self.0, operator);
-		}
-	}
+    pub fn operator(&mut self, operator: Operator) {
+        unsafe {
+            cairo_set_operator(self.0, operator);
+        }
+    }
 }
 
 impl AsRef<Context> for Context {
-	fn as_ref(&self) -> &Context {
-		self
-	}
+    fn as_ref(&self) -> &Context {
+        self
+    }
 }
 
 impl Drop for Context {
-	fn drop(&mut self) {
-		unsafe {
-			cairo_destroy(self.0);
-		}
-	}
+    fn drop(&mut self) {
+        unsafe {
+            cairo_destroy(self.0);
+        }
+    }
 }

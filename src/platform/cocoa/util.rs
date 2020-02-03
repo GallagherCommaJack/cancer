@@ -15,64 +15,63 @@
 // You should have received a copy of the GNU General Public License
 // along with cancer.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::ops::Deref;
 use cocoa::base::{id, nil};
+use std::ops::Deref;
 
 #[derive(Debug)]
 pub struct IdRef(id);
 
 impl IdRef {
-	pub fn new(i: id) -> IdRef {
-		IdRef(i)
-	}
+    pub fn new(i: id) -> IdRef {
+        IdRef(i)
+    }
 
-	#[allow(dead_code)]
-	pub fn retain(i: id) -> IdRef {
-		unsafe {
-			if i != nil {
-				msg_send![i, retain];
-			}
+    #[allow(dead_code)]
+    pub fn retain(i: id) -> IdRef {
+        unsafe {
+            if i != nil {
+                msg_send![i, retain];
+            }
 
-			IdRef(i)
-		}
-	}
+            IdRef(i)
+        }
+    }
 
-	pub fn non_nil(self) -> Option<IdRef> {
-		if self.0 == nil {
-			None
-		}
-		else {
-			Some(self)
-		}
-	}
+    pub fn non_nil(self) -> Option<IdRef> {
+        if self.0 == nil {
+            None
+        } else {
+            Some(self)
+        }
+    }
 }
 
 impl Deref for IdRef {
-	type Target = id;
+    type Target = id;
 
-	fn deref(&self) -> &Self::Target {
-		&self.0
-	}
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
 }
 
 impl Clone for IdRef {
-	fn clone(&self) -> IdRef {
-		unsafe {
-			if self.0 != nil {
-				msg_send![self.0, retain];
-			}
+    fn clone(&self) -> IdRef {
+        unsafe {
+            if self.0 != nil {
+                msg_send![self.0, retain];
+            }
 
-			IdRef(self.0)
-		}
-	}
+            IdRef(self.0)
+        }
+    }
 }
 
 impl Drop for IdRef {
-	fn drop(&mut self) {
-		unsafe {
-			if self.0 != nil {
-				msg_send![self.0, release];
-			}
-		}
-	}
+    fn drop(&mut self) {
+        unsafe {
+            if self.0 != nil {
+                msg_send![self.0, release];
+            }
+        }
+    }
 }

@@ -16,7 +16,7 @@
 // along with cancer.  If not, see <http://www.gnu.org/licenses/>.
 
 mod window;
-pub use self::window::{Window, Request};
+pub use self::window::{Request, Window};
 
 mod keyboard;
 pub use self::keyboard::Keyboard;

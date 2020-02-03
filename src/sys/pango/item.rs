@@ -20,9 +20,9 @@ use ffi::pango::*;
 pub struct Item(pub *mut PangoItem);
 
 impl Drop for Item {
-	fn drop(&mut self) {
-		unsafe {
-			pango_item_free(self.0);
-		}
-	}
+    fn drop(&mut self) {
+        unsafe {
+            pango_item_free(self.0);
+        }
+    }
 }

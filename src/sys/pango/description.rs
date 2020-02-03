@@ -15,39 +15,37 @@
 // You should have received a copy of the GNU General Public License
 // along with cancer.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::ffi::CString;
 use ffi::pango::*;
+use std::ffi::CString;
 
-use super::{Weight, Style};
+use super::{Style, Weight};
 
 pub struct Description(pub *mut PangoFontDescription);
 
 impl Description {
-	pub fn from<S: AsRef<str>>(name: S) -> Self {
-		let name = CString::new(name.as_ref()).unwrap();
+    pub fn from<S: AsRef<str>>(name: S) -> Self {
+        let name = CString::new(name.as_ref()).unwrap();
 
-		unsafe {
-			Description(pango_font_description_from_string(name.as_ptr()))
-		}
-	}
+        unsafe { Description(pango_font_description_from_string(name.as_ptr())) }
+    }
 
-	pub fn weight(&mut self, weight: Weight) {
-		unsafe {
-			pango_font_description_set_weight(self.0, weight);
-		}
-	}
+    pub fn weight(&mut self, weight: Weight) {
+        unsafe {
+            pango_font_description_set_weight(self.0, weight);
+        }
+    }
 
-	pub fn style(&mut self, style: Style) {
-		unsafe {
-			pango_font_description_set_style(self.0, style);
-		}
-	}
+    pub fn style(&mut self, style: Style) {
+        unsafe {
+            pango_font_description_set_style(self.0, style);
+        }
+    }
 }
 
 impl Drop for Description {
-	fn drop(&mut self) {
-		unsafe {
-			pango_font_description_free(self.0);
-		}
-	}
+    fn drop(&mut self) {
+        unsafe {
+            pango_font_description_free(self.0);
+        }
+    }
 }

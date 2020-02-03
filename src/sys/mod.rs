@@ -17,6 +17,6 @@
 
 #![allow(dead_code)]
 
-pub mod pango;
 pub mod cairo;
 pub mod glib;
+pub mod pango;

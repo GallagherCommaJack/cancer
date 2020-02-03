@@ -17,150 +17,162 @@
 
 use std::sync::Arc;
 
-use util::clamp;
-use picto::Region;
 use config::Config;
 use font::Font;
+use picto::Region;
+use util::clamp;
 
 #[derive(Clone, Debug)]
 pub struct State {
-	pub(super) config: Arc<Config>,
-	pub(super) font:   Arc<Font>,
+    pub(super) config: Arc<Config>,
+    pub(super) font: Arc<Font>,
 
-	pub(super) width:  u32,
-	pub(super) height: u32,
-	pub(super) margin: Margin,
+    pub(super) width: u32,
+    pub(super) height: u32,
+    pub(super) margin: Margin,
 }
 
 /// Adaptable margins depending on the view size.
 #[derive(Eq, PartialEq, Copy, Clone, Debug)]
 pub struct Margin {
-	pub horizontal: u32,
-	pub vertical:   u32,
+    pub horizontal: u32,
+    pub vertical: u32,
 }
 
 impl State {
-	/// The terminal configuration.
-	pub fn config(&self) -> &Arc<Config> {
-		&self.config
-	}
+    /// The terminal configuration.
+    pub fn config(&self) -> &Arc<Config> {
+        &self.config
+    }
 
-	/// The font being used.
-	pub fn font(&self) -> &Arc<Font> {
-		&self.font
-	}
+    /// The font being used.
+    pub fn font(&self) -> &Arc<Font> {
+        &self.font
+    }
 
-	/// The view width.
-	pub fn width(&self) -> u32 {
-		self.width
-	}
+    /// The view width.
+    pub fn width(&self) -> u32 {
+        self.width
+    }
 
-	/// The view height.
-	pub fn height(&self) -> u32 {
-		self.height
-	}
+    /// The view height.
+    pub fn height(&self) -> u32 {
+        self.height
+    }
 
-	/// How many rows fit the view.
-	pub fn rows(&self) -> u32 {
-		(self.height - (self.margin.vertical * 2)) /
-			(self.font.height() + self.config.style().spacing())
-	}
+    /// How many rows fit the view.
+    pub fn rows(&self) -> u32 {
+        (self.height - (self.margin.vertical * 2))
+            / (self.font.height() + self.config.style().spacing())
+    }
 
-	/// How many columns fit the view.
-	pub fn columns(&self) -> u32 {
-		(self.width - (self.margin.horizontal * 2)) /
-			self.font.width()
-	}
+    /// How many columns fit the view.
+    pub fn columns(&self) -> u32 {
+        (self.width - (self.margin.horizontal * 2)) / self.font.width()
+    }
 
-	/// The current margins.
-	pub fn margin(&self) -> &Margin {
-		&self.margin
-	}
+    /// The current margins.
+    pub fn margin(&self) -> &Margin {
+        &self.margin
+    }
 
-	/// Resize the state.
-	pub fn resize(&mut self, width: u32, height: u32) {
-		let (m, s) = (self.config.style().margin(), self.config.style().spacing());
+    /// Resize the state.
+    pub fn resize(&mut self, width: u32, height: u32) {
+        let (m, s) = (self.config.style().margin(), self.config.style().spacing());
 
-		self.margin.horizontal = m +
-			((width - (m * 2)) % self.font.width()) / 2;
+        self.margin.horizontal = m + ((width - (m * 2)) % self.font.width()) / 2;
 
-		self.margin.vertical = m +
-			((height - (m * 2)) % (self.font.height() + s)) / 2;
+        self.margin.vertical = m + ((height - (m * 2)) % (self.font.height() + s)) / 2;
 
-		self.width  = width;
-		self.height = height;
-	}
+        self.width = width;
+        self.height = height;
+    }
 
-	/// Find the cell position from the real position.
-	pub fn position(&self, x: u32, y: u32) -> Option<(u32, u32)> {
-		let (f, h, v, s) = (&self.font, self.margin.horizontal, self.margin.vertical, self.config.style().spacing());
+    /// Find the cell position from the real position.
+    pub fn position(&self, x: u32, y: u32) -> Option<(u32, u32)> {
+        let (f, h, v, s) = (
+            &self.font,
+            self.margin.horizontal,
+            self.margin.vertical,
+            self.config.style().spacing(),
+        );
 
-		// Check if the region falls exactly within a margin, if so bail out.
-		if h != 0 && v != 0 &&
-		   (x < h || x >= self.width - h ||
-		    y < v || y >= self.height - v)
-		{
-			return None;
-		}
+        // Check if the region falls exactly within a margin, if so bail out.
+        if h != 0 && v != 0 && (x < h || x >= self.width - h || y < v || y >= self.height - v) {
+            return None;
+        }
 
-		// Cache font dimensions.
-		let width  = f.width() as f32;
-		let height = (f.height() + s) as f32;
+        // Cache font dimensions.
+        let width = f.width() as f32;
+        let height = (f.height() + s) as f32;
 
-		// Remove the margin from coordinates.
-		let x = x.saturating_sub(h) as f32;
-		let y = y.saturating_sub(v) as f32;
+        // Remove the margin from coordinates.
+        let x = x.saturating_sub(h) as f32;
+        let y = y.saturating_sub(v) as f32;
 
-		let x = (x / width).floor() as u32;
-		let y = (y / height).floor() as u32;
+        let x = (x / width).floor() as u32;
+        let y = (y / height).floor() as u32;
 
-		Some((x, y))
-	}
+        Some((x, y))
+    }
 
-	/// Turn the damaged region to cell-space.
-	pub fn damaged(&self, region: &Region) -> Region {
-		let (f, h, v, s) = (&self.font, self.margin.horizontal, self.margin.vertical, self.config.style().spacing());
+    /// Turn the damaged region to cell-space.
+    pub fn damaged(&self, region: &Region) -> Region {
+        let (f, h, v, s) = (
+            &self.font,
+            self.margin.horizontal,
+            self.margin.vertical,
+            self.config.style().spacing(),
+        );
 
-		// Check if the region falls exactly within a margin, if so bail out.
-		if h != 0 && v != 0 &&
-		   ((region.x < h && region.width <= h - region.x) ||
-		    (region.x >= self.width - h) ||
-		    (region.y < v && region.height <= v - region.y) ||
-		    (region.y >= self.height - v))
-		{
-			return Region::from(0, 0, 0, 0);
-		}
+        // Check if the region falls exactly within a margin, if so bail out.
+        if h != 0
+            && v != 0
+            && ((region.x < h && region.width <= h - region.x)
+                || (region.x >= self.width - h)
+                || (region.y < v && region.height <= v - region.y)
+                || (region.y >= self.height - v))
+        {
+            return Region::from(0, 0, 0, 0);
+        }
 
-		// Cache font dimensions.
-		let width  = f.width() as f32;
-		let height = (f.height() + s) as f32;
+        // Cache font dimensions.
+        let width = f.width() as f32;
+        let height = (f.height() + s) as f32;
 
-		// Remove the margin from coordinates.
-		let x = region.x.saturating_sub(h) as f32;
-		let y = region.y.saturating_sub(v) as f32;
+        // Remove the margin from coordinates.
+        let x = region.x.saturating_sub(h) as f32;
+        let y = region.y.saturating_sub(v) as f32;
 
-		// Remove margins from width.
-		let w = region.width
-			.saturating_sub(h.saturating_sub(region.x))
-			.saturating_sub(h.saturating_sub(self.width - (region.x + region.width))) as f32;
+        // Remove margins from width.
+        let w = region
+            .width
+            .saturating_sub(h.saturating_sub(region.x))
+            .saturating_sub(h.saturating_sub(self.width - (region.x + region.width)))
+            as f32;
 
-		// Remove margins from height.
-		let h = region.height
-			.saturating_sub(v.saturating_sub(region.y))
-			.saturating_sub(v.saturating_sub(self.height - (region.y + region.height))) as f32;
+        // Remove margins from height.
+        let h = region
+            .height
+            .saturating_sub(v.saturating_sub(region.y))
+            .saturating_sub(v.saturating_sub(self.height - (region.y + region.height)))
+            as f32;
 
-		let x = (x / width).floor() as u32;
-		let y = (y / height).floor() as u32;
-		let w = clamp((w / width).ceil() as u32, 0, self.columns());
-		let h = clamp((h / height).ceil() as u32, 0, self.rows());
+        let x = (x / width).floor() as u32;
+        let y = (y / height).floor() as u32;
+        let w = clamp((w / width).ceil() as u32, 0, self.columns());
+        let h = clamp((h / height).ceil() as u32, 0, self.rows());
 
-		// Increment width and height by one if it fits within dimensions.
-		//
-		// This is done because the dirty region is actually bigger than the one
-		// reported, or because the algorithm is broken. Regardless, this way it
-		// works properly.
-		Region::from(x, y,
-			w + if x + w < self.columns() { 1 } else { 0 },
-			h + if y + h < self.rows() { 1 } else { 0 })
-	}
+        // Increment width and height by one if it fits within dimensions.
+        //
+        // This is done because the dirty region is actually bigger than the one
+        // reported, or because the algorithm is broken. Regardless, this way it
+        // works properly.
+        Region::from(
+            x,
+            y,
+            w + if x + w < self.columns() { 1 } else { 0 },
+            h + if y + h < self.rows() { 1 } else { 0 },
+        )
+    }
 }

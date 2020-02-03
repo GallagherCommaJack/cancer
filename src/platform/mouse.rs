@@ -19,35 +19,35 @@ use platform::key;
 
 #[derive(Eq, PartialEq, Copy, Clone, Debug)]
 pub enum Mouse {
-	Click(Click),
-	Motion(Motion),
+    Click(Click),
+    Motion(Motion),
 }
 
 #[derive(Eq, PartialEq, Copy, Clone, Debug)]
 pub struct Click {
-	pub press:    bool,
-	pub modifier: key::Modifier,
-	pub button:   Button,
-	pub position: Position,
+    pub press: bool,
+    pub modifier: key::Modifier,
+    pub button: Button,
+    pub position: Position,
 }
 
 #[derive(Eq, PartialEq, Copy, Clone, Debug)]
 pub struct Motion {
-	pub modifier: key::Modifier,
-	pub position: Position,
+    pub modifier: key::Modifier,
+    pub position: Position,
 }
 
 #[derive(Eq, PartialEq, Copy, Clone, Debug)]
 pub enum Button {
-	Left,
-	Middle,
-	Right,
-	Up,
-	Down,
+    Left,
+    Middle,
+    Right,
+    Up,
+    Down,
 }
 
 #[derive(Eq, PartialEq, Copy, Clone, Debug)]
 pub struct Position {
-	pub x: u32,
-	pub y: u32,
+    pub x: u32,
+    pub y: u32,
 }

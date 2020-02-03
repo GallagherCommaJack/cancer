@@ -19,8 +19,8 @@ use std::fs::{self, File};
 use std::io::{Read, Write};
 use std::path::Path;
 
+use app_dirs::{app_root, AppDataType, AppInfo};
 use toml;
-use app_dirs::{AppInfo, AppDataType, app_root};
 
 use error;
 
@@ -43,98 +43,100 @@ pub use self::color::Color;
 
 #[derive(Clone, Default, Debug)]
 pub struct Config {
-	environment: Environment,
-	input:       Input,
-	style:       Style,
-	overlay:     Overlay,
-	color:       Color,
+    environment: Environment,
+    input: Input,
+    style: Style,
+    overlay: Overlay,
+    color: Color,
 }
 
 impl Config {
-	pub fn load<P: AsRef<Path>>(path: Option<P>) -> error::Result<Self> {
-		let path = if let Some(path) = path {
-			path.as_ref().into()
-		}
-		else {
-			let path = app_root(AppDataType::UserConfig,
-				&AppInfo { name: "cancer", author: "meh." })?.join("config.toml");
+    pub fn load<P: AsRef<Path>>(path: Option<P>) -> error::Result<Self> {
+        let path = if let Some(path) = path {
+            path.as_ref().into()
+        } else {
+            let path = app_root(
+                AppDataType::UserConfig,
+                &AppInfo {
+                    name: "cancer",
+                    author: "meh.",
+                },
+            )?
+            .join("config.toml");
 
-			if fs::metadata(&path).is_err() {
-				if let Ok(mut file) = File::create(&path) {
-					let _ = file.write_all(include_bytes!("../../assets/default.toml"));
-				}
-			}
+            if fs::metadata(&path).is_err() {
+                if let Ok(mut file) = File::create(&path) {
+                    let _ = file.write_all(include_bytes!("../../assets/default.toml"));
+                }
+            }
 
-			path
-		};
+            path
+        };
 
-		if let Ok(mut file) = File::open(path) {
-			let mut content = String::new();
-			let     _       = file.read_to_string(&mut content);
+        if let Ok(mut file) = File::open(path) {
+            let mut content = String::new();
+            let _ = file.read_to_string(&mut content);
 
-			match content.parse::<toml::Value>() {
-				Ok(table) =>
-					return Ok(Config::from(table.as_table().unwrap())),
+            match content.parse::<toml::Value>() {
+                Ok(table) => return Ok(Config::from(table.as_table().unwrap())),
 
-				Err(error) => {
-					error!(target: "cancer::config", "could not load configuration file");
-					error!(target: "cancer::config", "{:?}", error);
-				}
-			}
+                Err(error) => {
+                    error!(target: "cancer::config", "could not load configuration file");
+                    error!(target: "cancer::config", "{:?}", error);
+                }
+            }
+        } else {
+            error!(target: "cancer::config", "could not read configuration file");
+        }
 
-		}
-		else {
-			error!(target: "cancer::config", "could not read configuration file");
-		}
+        Ok(Config::from(&toml::value::Table::new()))
+    }
 
-		Ok(Config::from(&toml::value::Table::new()))
-	}
+    pub fn environment(&self) -> &Environment {
+        &self.environment
+    }
 
-	pub fn environment(&self) -> &Environment {
-		&self.environment
-	}
+    pub fn overlay(&self) -> &Overlay {
+        &self.overlay
+    }
 
-	pub fn overlay(&self) -> &Overlay {
-		&self.overlay
-	}
+    pub fn input(&self) -> &Input {
+        &self.input
+    }
 
-	pub fn input(&self) -> &Input {
-		&self.input
-	}
+    pub fn style(&self) -> &Style {
+        &self.style
+    }
 
-	pub fn style(&self) -> &Style {
-		&self.style
-	}
-
-	pub fn color(&self) -> &Color {
-		&self.color
-	}
+    pub fn color(&self) -> &Color {
+        &self.color
+    }
 }
 
 impl<'a> From<&'a toml::value::Table> for Config {
-	fn from(table: &'a toml::value::Table) -> Config {
-		let mut config = Config::default();
+    fn from(table: &'a toml::value::Table) -> Config {
+        let mut config = Config::default();
 
-		if let Some(table) = table.get("environment").and_then(|v| v.as_table()) {
-			config.environment.load(table);
-		}
+        if let Some(table) = table.get("environment").and_then(|v| v.as_table()) {
+            config.environment.load(table);
+        }
 
-		if let Some(table) = table.get("overlay").and_then(|v| v.as_table()) {
-			config.overlay.load(table);
-		}
+        if let Some(table) = table.get("overlay").and_then(|v| v.as_table()) {
+            config.overlay.load(table);
+        }
 
-		if let Some(table) = table.get("style").and_then(|v| v.as_table()) {
-			config.style.load(table);
-		}
+        if let Some(table) = table.get("style").and_then(|v| v.as_table()) {
+            config.style.load(table);
+        }
 
-		if let Some(table) = table.get("color").and_then(|v| v.as_table()) {
-			config.color.load(table);
-		}
+        if let Some(table) = table.get("color").and_then(|v| v.as_table()) {
+            config.color.load(table);
+        }
 
-		if let Some(table) = table.get("input").and_then(|v| v.as_table()) {
-			config.input.load(table);
-		}
+        if let Some(table) = table.get("input").and_then(|v| v.as_table()) {
+            config.input.load(table);
+        }
 
-		config
-	}
+        config
+    }
 }

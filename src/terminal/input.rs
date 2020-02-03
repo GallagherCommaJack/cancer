@@ -19,73 +19,76 @@ use control;
 
 #[derive(Eq, PartialEq, Copy, Clone, Debug)]
 pub enum Input<'a> {
-	Done(&'a [u8], Kind<'a>),
-	Incomplete(Option<usize>),
-	Error(usize),
+    Done(&'a [u8], Kind<'a>),
+    Incomplete(Option<usize>),
+    Error(usize),
 }
 
 #[derive(Eq, PartialEq, Copy, Clone, Debug)]
 pub enum Kind<'a> {
-	Unicode(&'a str),
-	Ascii(&'a str),
+    Unicode(&'a str),
+    Ascii(&'a str),
 }
 
 pub fn parse(i: &[u8]) -> Input {
-	use std::str;
+    use std::str;
 
-	const WIDTH: [u8; 256] = [
-		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 0x1F
-		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 0x3F
-		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 0x5F
-		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 0x7F
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0x9F
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0xBF
-		0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
-		2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, // 0xDF
-		3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, // 0xEF
-		4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0xFF
-	];
+    const WIDTH: [u8; 256] = [
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        1, 1, // 0x1F
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        1, 1, // 0x3F
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        1, 1, // 0x5F
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        1, 1, // 0x7F
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, // 0x9F
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, // 0xBF
+        0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+        2, 2, // 0xDF
+        3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, // 0xEF
+        4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0xFF
+    ];
 
-	let mut length = WIDTH[i[0] as usize] as usize;
-	let mut ascii  = length == 1;
+    let mut length = WIDTH[i[0] as usize] as usize;
+    let mut ascii = length == 1;
 
-	if i.len() < length {
-		return Input::Incomplete(None);
-	}
-	else if length == 0 || (!ascii && str::from_utf8(&i[..length]).is_err()) {
-		return Input::Error(length);
-	}
+    if i.len() < length {
+        return Input::Incomplete(None);
+    } else if length == 0 || (!ascii && str::from_utf8(&i[..length]).is_err()) {
+        return Input::Error(length);
+    }
 
-	let mut rest = &i[length..];
+    let mut rest = &i[length..];
 
-	while !rest.is_empty() && control::parse(rest).is_err() {
-		let w = WIDTH[rest[0] as usize] as usize;
+    while !rest.is_empty() && control::parse(rest).is_err() {
+        let w = WIDTH[rest[0] as usize] as usize;
 
-		if w > 1 {
-			ascii = false;
-		}
+        if w > 1 {
+            ascii = false;
+        }
 
-		if rest.len() < w {
-			return Input::Incomplete(Some(w - rest.len()));
-		}
-		else if w == 0 || (!ascii && str::from_utf8(&rest[..w]).is_err()) {
-			break;
-		}
+        if rest.len() < w {
+            return Input::Incomplete(Some(w - rest.len()));
+        } else if w == 0 || (!ascii && str::from_utf8(&rest[..w]).is_err()) {
+            break;
+        }
 
-		length += w;
-		rest    = &rest[w..];
-	}
+        length += w;
+        rest = &rest[w..];
+    }
 
-	if ascii {
-		Input::Done(&i[length..], Kind::Ascii(unsafe { str::from_utf8_unchecked(&i[..length]) }))
-	}
-	else {
-		Input::Done(&i[length..], Kind::Unicode(unsafe { str::from_utf8_unchecked(&i[..length]) }))
-	}
+    if ascii {
+        Input::Done(
+            &i[length..],
+            Kind::Ascii(unsafe { str::from_utf8_unchecked(&i[..length]) }),
+        )
+    } else {
+        Input::Done(
+            &i[length..],
+            Kind::Unicode(unsafe { str::from_utf8_unchecked(&i[..length]) }),
+        )
+    }
 }

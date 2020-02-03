@@ -18,97 +18,107 @@
 use std::ops::Deref;
 use std::ptr;
 
-use libc::c_int;
+use error::{self, Error};
 use ffi::pango::*;
+use libc::c_int;
+use style;
 use sys::glib;
 use sys::pango;
-use style;
-use error::{self, Error};
 
 /// The font to use for rendering.
 #[derive(Debug)]
 pub struct Font {
-	map:     pango::Map,
-	context: pango::Context,
-	set:     pango::Set,
-	metrics: pango::Metrics,
+    map: pango::Map,
+    context: pango::Context,
+    set: pango::Set,
+    metrics: pango::Metrics,
 }
 
-unsafe impl Send for Font { }
-unsafe impl Sync for Font { }
+unsafe impl Send for Font {}
+unsafe impl Sync for Font {}
 
 impl Font {
-	/// Load the font from the given configuration.
-	pub fn load<T: AsRef<str>>(name: T) -> error::Result<Self> {
-		let map     = pango::Map::new();
-		let context = pango::Context::new(&map);
-		let set     = context.fonts(&pango::Description::from(name))
-			.ok_or_else(|| Error::Message("missing font".into()))?;
+    /// Load the font from the given configuration.
+    pub fn load<T: AsRef<str>>(name: T) -> error::Result<Self> {
+        let map = pango::Map::new();
+        let context = pango::Context::new(&map);
+        let set = context
+            .fonts(&pango::Description::from(name))
+            .ok_or_else(|| Error::Message("missing font".into()))?;
 
-		let metrics = set.metrics();
-		if metrics.width() == 0 || metrics.height() == 0 {
-			return Err(Error::Message("wrong font dimensions".into()));
-		}
+        let metrics = set.metrics();
+        if metrics.width() == 0 || metrics.height() == 0 {
+            return Err(Error::Message("wrong font dimensions".into()));
+        }
 
-		Ok(Font {
-			map:     map,
-			context: context,
-			set:     set,
-			metrics: metrics,
-		})
-	}
+        Ok(Font {
+            map: map,
+            context: context,
+            set: set,
+            metrics: metrics,
+        })
+    }
 
-	/// Shape the string.
-	pub fn shape<T: AsRef<str>>(&self, text: T, style: style::Attributes) -> pango::GlyphItem {
-		let text = text.as_ref();
+    /// Shape the string.
+    pub fn shape<T: AsRef<str>>(&self, text: T, style: style::Attributes) -> pango::GlyphItem {
+        let text = text.as_ref();
 
-		unsafe {
-			let attrs = pango::Attributes::new();
-			let attrs = if style.contains(style::BOLD) {
-				attrs.weight(pango::Weight::Bold)
-			}
-			else if style.contains(style::FAINT) {
-				attrs.weight(pango::Weight::Light)
-			}
-			else {
-				attrs.weight(pango::Weight::Normal)
-			};
+        unsafe {
+            let attrs = pango::Attributes::new();
+            let attrs = if style.contains(style::BOLD) {
+                attrs.weight(pango::Weight::Bold)
+            } else if style.contains(style::FAINT) {
+                attrs.weight(pango::Weight::Light)
+            } else {
+                attrs.weight(pango::Weight::Normal)
+            };
 
-			let attrs = if style.contains(style::ITALIC) {
-				attrs.style(pango::Style::Italic)
-			}
-			else {
-				attrs.style(pango::Style::Normal)
-			};
+            let attrs = if style.contains(style::ITALIC) {
+                attrs.style(pango::Style::Italic)
+            } else {
+                attrs.style(pango::Style::Normal)
+            };
 
-			let     list   = glib::List(pango_itemize(self.context.0, text.as_ptr() as *const _, 0, text.len() as c_int, attrs.0, ptr::null()));
-			let mut result = Vec::new();
-			let mut list   = list.0;
+            let list = glib::List(pango_itemize(
+                self.context.0,
+                text.as_ptr() as *const _,
+                0,
+                text.len() as c_int,
+                attrs.0,
+                ptr::null(),
+            ));
+            let mut result = Vec::new();
+            let mut list = list.0;
 
-			while !list.is_null() {
-				let item   = (*list).data as *mut PangoItem;
-				let glyphs = pango::GlyphString::new();
-				pango_shape(text.as_ptr() as *const _, text.len() as c_int, &(*item).analysis, glyphs.0);
+            while !list.is_null() {
+                let item = (*list).data as *mut PangoItem;
+                let glyphs = pango::GlyphString::new();
+                pango_shape(
+                    text.as_ptr() as *const _,
+                    text.len() as c_int,
+                    &(*item).analysis,
+                    glyphs.0,
+                );
 
-				result.push(pango::GlyphItem::new(pango::Item(item), glyphs));
-				list = (*list).next;
-			}
+                result.push(pango::GlyphItem::new(pango::Item(item), glyphs));
+                list = (*list).next;
+            }
 
-			result.into_iter().next().unwrap()
-		}
-	}
+            result.into_iter().next().unwrap()
+        }
+    }
 }
 
 impl AsRef<pango::Context> for Font {
-	fn as_ref(&self) -> &pango::Context {
-		&self.context
-	}
+    fn as_ref(&self) -> &pango::Context {
+        &self.context
+    }
 }
 
 impl Deref for Font {
-	type Target = pango::Metrics;
+    type Target = pango::Metrics;
 
-	fn deref(&self) -> &Self::Target {
-		&self.metrics
-	}
+    fn deref(&self) -> &Self::Target {
+        &self.metrics
+    }
 }

@@ -16,78 +16,71 @@
 // along with cancer.  If not, see <http://www.gnu.org/licenses/>.
 
 macro_rules! try {
-	(return option $body:expr) => (
-		if let Some(value) = $body {
-			value
-		}
-		else {
-			return;
-		}
-	);
+    (return option $body:expr) => {
+        if let Some(value) = $body {
+            value
+        } else {
+            return;
+        }
+    };
 
-	(continue option $body:expr) => (
-		if let Some(value) = $body {
-			value
-		}
-		else {
-			continue;
-		}
-	);
+    (continue option $body:expr) => {
+        if let Some(value) = $body {
+            value
+        } else {
+            continue;
+        }
+    };
 
-	(return $body:expr) => (
-		if let Ok(value) = $body {
-			value
-		}
-		else {
-			return;
-		}
-	);
+    (return $body:expr) => {
+        if let Ok(value) = $body {
+            value
+        } else {
+            return;
+        }
+    };
 
-	(continue $body:expr) => (
-		if let Ok(value) = $body {
-			value
-		}
-		else {
-			continue;
-		}
-	);
+    (continue $body:expr) => {
+        if let Ok(value) = $body {
+            value
+        } else {
+            continue;
+        }
+    };
 
-	(break $body:expr) => (
-		if let Ok(value) = $body {
-			value
-		}
-		else {
-			break;
-		}
-	);
+    (break $body:expr) => {
+        if let Ok(value) = $body {
+            value
+        } else {
+            break;
+        }
+    };
 
-	(ok $body:expr) => (
-		if let Ok(value) = $body {
-			value
-		}
-		else {
-			return Ok(());
-		}
-	);
+    (ok $body:expr) => {
+        if let Ok(value) = $body {
+            value
+        } else {
+            return Ok(());
+        }
+    };
 
-	(option $body:expr) => (
-		if let Some(value) = $body {
-			value
-		}
-		else {
-			return None;
-		}
-	);
+    (option $body:expr) => {
+        if let Some(value) = $body {
+            value
+        } else {
+            return None;
+        }
+    };
 
-	($body:expr) => (
-		$body?
-	);
+    ($body:expr) => {
+        $body?
+    };
 }
 
 macro_rules! vec_deque {
-	($value:expr; $size:expr) => ({
-		let mut value = VecDeque::new();
-		value.extend(::std::iter::repeat($value).take($size));
-		value
-	})
+    ($value:expr; $size:expr) => {{
+        let mut value = VecDeque::new();
+        value.extend(::std::iter::repeat($value).take($size));
+        value
+    }};
 }

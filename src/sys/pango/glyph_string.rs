@@ -21,25 +21,21 @@ use ffi::pango::*;
 pub struct GlyphString(pub *mut PangoGlyphString);
 
 impl GlyphString {
-	pub fn new() -> Self {
-		unsafe {
-			GlyphString(pango_glyph_string_new())
-		}
-	}
+    pub fn new() -> Self {
+        unsafe { GlyphString(pango_glyph_string_new()) }
+    }
 }
 
 impl Clone for GlyphString {
-	fn clone(&self) -> Self {
-		unsafe {
-			GlyphString(pango_glyph_string_copy(self.0))
-		}
-	}
+    fn clone(&self) -> Self {
+        unsafe { GlyphString(pango_glyph_string_copy(self.0)) }
+    }
 }
 
 impl Drop for GlyphString {
-	fn drop(&mut self) {
-		unsafe {
-			pango_glyph_string_free(self.0);
-		}
-	}
+    fn drop(&mut self) {
+        unsafe {
+            pango_glyph_string_free(self.0);
+        }
+    }
 }

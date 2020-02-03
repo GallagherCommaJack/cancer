@@ -15,117 +15,127 @@
 // You should have received a copy of the GNU General Public License
 // along with cancer.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::sync::Arc;
-use std::process::Command;
 use std::cell::RefCell;
 use std::ffi::CStr;
+use std::process::Command;
 use std::str;
-use std::sync::mpsc::Sender;
+use std::sync::Arc;
 
-use cocoa::foundation::{NSString, NSSize, NSArray};
-use cocoa::appkit::{NSWindow, NSView, NSSound, NSPasteboard, NSPasteboardTypeString};
+use cocoa::appkit::{NSPasteboard, NSPasteboardTypeString, NSSound, NSView, NSWindow};
 use cocoa::base::{class, nil};
+use cocoa::foundation::{NSArray, NSSize, NSString};
 
-use sys::cairo;
-use error;
-use platform::{self, Clipboard, Event};
-use platform::cocoa::IdRef;
 use config::Config;
+use crossbeam_channel::{select, unbounded as channel, Sender};
+use error;
+use platform::cocoa::IdRef;
+use platform::{self, Clipboard, Event};
+use sys::cairo;
 
 #[derive(Debug)]
 pub struct Proxy {
-	pub(super) config:  Arc<Config>,
-	pub(super) manager: Option<Sender<Event>>,
+    pub(super) config: Arc<Config>,
+    pub(super) manager: Option<Sender<Event>>,
 
-	pub(super) window:  IdRef,
-	pub(super) view:    IdRef,
-	pub(super) context: RefCell<IdRef>,
+    pub(super) window: IdRef,
+    pub(super) view: IdRef,
+    pub(super) context: RefCell<IdRef>,
 }
 
-unsafe impl Send for Proxy { }
+unsafe impl Send for Proxy {}
 
 impl platform::Proxy for Proxy {
-	fn dimensions(&self) -> (u32, u32) {
-		unsafe {
-			let rect   = NSView::frame(*self.view);
-			let factor = NSWindow::backingScaleFactor(*self.window) as f32;
-			let width  = factor * rect.size.width as f32;
-			let height = factor * rect.size.height as f32;
+    fn dimensions(&self) -> (u32, u32) {
+        unsafe {
+            let rect = NSView::frame(*self.view);
+            let factor = NSWindow::backingScaleFactor(*self.window) as f32;
+            let width = factor * rect.size.width as f32;
+            let height = factor * rect.size.height as f32;
 
-			(width as u32, height as u32)
-		}
-	}
+            (width as u32, height as u32)
+        }
+    }
 
-	fn surface(&self) -> error::Result<cairo::Surface> {
-		unsafe {
-			let (width, height) = self.dimensions();
+    fn surface(&self) -> error::Result<cairo::Surface> {
+        unsafe {
+            let (width, height) = self.dimensions();
 
-			*self.context.borrow_mut() = IdRef::new(msg_send![class("NSGraphicsContext"),
+            *self.context.borrow_mut() = IdRef::new(msg_send![class("NSGraphicsContext"),
 				graphicsContextWithWindow:*self.window]);
 
-			Ok(cairo::Surface::new(msg_send![**self.context.borrow(), CGContext], width, height))
-		}
-	}
+            Ok(cairo::Surface::new(
+                msg_send![**self.context.borrow(), CGContext],
+                width,
+                height,
+            ))
+        }
+    }
 
-	fn prepare(&mut self, manager: Sender<Event>) {
-		self.manager = Some(manager);
-	}
+    fn prepare(&mut self, manager: Sender<Event>) {
+        self.manager = Some(manager);
+    }
 
-	fn resize(&mut self, width: u32, height: u32) {
-		unsafe {
-			self.window.setContentSize_(NSSize::new(width as f64, height as f64));
-		}
-	}
+    fn resize(&mut self, width: u32, height: u32) {
+        unsafe {
+            self.window
+                .setContentSize_(NSSize::new(width as f64, height as f64));
+        }
+    }
 
-	fn set_title(&self, title: String) {
-		unsafe {
-			self.window.setTitle_(*IdRef::new(NSString::alloc(nil).init_str(&title)))
-		}
-	}
+    fn set_title(&self, title: String) {
+        unsafe {
+            self.window
+                .setTitle_(*IdRef::new(NSString::alloc(nil).init_str(&title)))
+        }
+    }
 
-	fn copy(&self, _name: Clipboard, value: String) {
-		unsafe {
-			let paste = NSPasteboard::generalPasteboard(nil);
-			paste.clearContents();
-			paste.writeObjects(NSArray::arrayWithObjects(nil, &[NSString::alloc(nil).init_str(&value)]));
-		}
-	}
+    fn copy(&self, _name: Clipboard, value: String) {
+        unsafe {
+            let paste = NSPasteboard::generalPasteboard(nil);
+            paste.clearContents();
+            paste.writeObjects(NSArray::arrayWithObjects(
+                nil,
+                &[NSString::alloc(nil).init_str(&value)],
+            ));
+        }
+    }
 
-	fn paste(&self, _name: Clipboard) {
-		unsafe {
-			if let Some(manager) = self.manager.as_ref() {
-				let paste = NSPasteboard::generalPasteboard(nil);
-				let value = paste.stringForType(NSPasteboardTypeString);
+    fn paste(&self, _name: Clipboard) {
+        unsafe {
+            if let Some(manager) = self.manager.as_ref() {
+                let paste = NSPasteboard::generalPasteboard(nil);
+                let value = paste.stringForType(NSPasteboardTypeString);
 
-				if value != nil {
-					let string = value.UTF8String();
-					let string = CStr::from_ptr(string);
-					let string = str::from_utf8_unchecked(string.to_bytes());
-					let _      = manager.send(Event::Paste(string.into()));
-				}
-			}
-		}
-	}
+                if value != nil {
+                    let string = value.UTF8String();
+                    let string = CStr::from_ptr(string);
+                    let string = str::from_utf8_unchecked(string.to_bytes());
+                    let _ = manager.send(Event::Paste(string.into()));
+                }
+            }
+        }
+    }
 
-	fn urgent(&self) {
-		unsafe {
-			if let Some(sound) = self.config.environment().cocoa().bell() {
-				NSSound::soundNamed_(nil, NSString::alloc(nil).init_str(sound)).play();
-			}
-		}
-	}
+    fn urgent(&self) {
+        unsafe {
+            if let Some(sound) = self.config.environment().cocoa().bell() {
+                NSSound::soundNamed_(nil, NSString::alloc(nil).init_str(sound)).play();
+            }
+        }
+    }
 
-	fn render<F: FnOnce()>(&mut self, surface: &mut cairo::Surface, f: F) {
-		f(); surface.flush();
+    fn render<F: FnOnce()>(&mut self, surface: &mut cairo::Surface, f: F) {
+        f();
+        surface.flush();
 
-		unsafe {
-			msg_send![**self.context.borrow(), flushGraphics];
-		}
-	}
+        unsafe {
+            msg_send![**self.context.borrow(), flushGraphics];
+        }
+    }
 
-	fn open(&self, through: Option<&str>, value: &str) -> error::Result<()> {
-		Command::new(through.unwrap_or("open")).arg(value).spawn()?;
+    fn open(&self, through: Option<&str>, value: &str) -> error::Result<()> {
+        Command::new(through.unwrap_or("open")).arg(value).spawn()?;
 
-		Ok(())
-	}
+        Ok(())
+    }
 }

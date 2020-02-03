@@ -19,63 +19,67 @@ use picto::color::Rgba;
 use style;
 
 pub fn is_color(arg: &str) -> bool {
-	arg.starts_with('#') &&
-	(arg.len() == 4 || arg.len() == 5 || arg.len() == 7 || arg.len() == 9) &&
-	arg.chars().skip(1).all(|c| c.is_digit(16))
+    arg.starts_with('#')
+        && (arg.len() == 4 || arg.len() == 5 || arg.len() == 7 || arg.len() == 9)
+        && arg.chars().skip(1).all(|c| c.is_digit(16))
 }
 
 pub fn to_color(arg: &str) -> Option<Rgba<f64>> {
-	if !is_color(arg) {
-		return None;
-	}
+    if !is_color(arg) {
+        return None;
+    }
 
-	let (r, g, b, a) = if arg.len() == 4 {
-		(u8::from_str_radix(&arg[1..2], 16).unwrap() * 0x11,
-		 u8::from_str_radix(&arg[2..3], 16).unwrap() * 0x11,
-		 u8::from_str_radix(&arg[3..4], 16).unwrap() * 0x11,
-		 255)
-	}
-	else if arg.len() == 5 {
-		(u8::from_str_radix(&arg[1..2], 16).unwrap() * 0x11,
-		 u8::from_str_radix(&arg[2..3], 16).unwrap() * 0x11,
-		 u8::from_str_radix(&arg[3..4], 16).unwrap() * 0x11,
-		 u8::from_str_radix(&arg[4..5], 16).unwrap() * 0x11)
-	}
-	else if arg.len() == 7 {
-		(u8::from_str_radix(&arg[1..3], 16).unwrap(),
-		 u8::from_str_radix(&arg[3..5], 16).unwrap(),
-		 u8::from_str_radix(&arg[5..7], 16).unwrap(),
-		 255)
-	}
-	else if arg.len() == 9 {
-		(u8::from_str_radix(&arg[1..3], 16).unwrap(),
-		 u8::from_str_radix(&arg[3..5], 16).unwrap(),
-		 u8::from_str_radix(&arg[5..7], 16).unwrap(),
-		 u8::from_str_radix(&arg[7..9], 16).unwrap())
-	}
-	else {
-		unreachable!()
-	};
+    let (r, g, b, a) = if arg.len() == 4 {
+        (
+            u8::from_str_radix(&arg[1..2], 16).unwrap() * 0x11,
+            u8::from_str_radix(&arg[2..3], 16).unwrap() * 0x11,
+            u8::from_str_radix(&arg[3..4], 16).unwrap() * 0x11,
+            255,
+        )
+    } else if arg.len() == 5 {
+        (
+            u8::from_str_radix(&arg[1..2], 16).unwrap() * 0x11,
+            u8::from_str_radix(&arg[2..3], 16).unwrap() * 0x11,
+            u8::from_str_radix(&arg[3..4], 16).unwrap() * 0x11,
+            u8::from_str_radix(&arg[4..5], 16).unwrap() * 0x11,
+        )
+    } else if arg.len() == 7 {
+        (
+            u8::from_str_radix(&arg[1..3], 16).unwrap(),
+            u8::from_str_radix(&arg[3..5], 16).unwrap(),
+            u8::from_str_radix(&arg[5..7], 16).unwrap(),
+            255,
+        )
+    } else if arg.len() == 9 {
+        (
+            u8::from_str_radix(&arg[1..3], 16).unwrap(),
+            u8::from_str_radix(&arg[3..5], 16).unwrap(),
+            u8::from_str_radix(&arg[5..7], 16).unwrap(),
+            u8::from_str_radix(&arg[7..9], 16).unwrap(),
+        )
+    } else {
+        unreachable!()
+    };
 
-	Some(Rgba::new_u8(r, g, b, a))
+    Some(Rgba::new_u8(r, g, b, a))
 }
 
 pub fn to_attributes(arg: &str) -> style::Attributes {
-	let mut attributes = style::NONE;
+    let mut attributes = style::NONE;
 
-	for attr in arg.split(' ') {
-		attributes |= match &*attr.to_lowercase() {
-			"bold"      => style::BOLD,
-			"faint"     => style::FAINT,
-			"italic"    => style::ITALIC,
-			"underline" => style::UNDERLINE,
-			"blink"     => style::BLINK,
-			"reverse"   => style::REVERSE,
-			"invisible" => style::INVISIBLE,
-			"struck"    => style::STRUCK,
-			_           => style::NONE,
-		}
-	}
+    for attr in arg.split(' ') {
+        attributes |= match &*attr.to_lowercase() {
+            "bold" => style::BOLD,
+            "faint" => style::FAINT,
+            "italic" => style::ITALIC,
+            "underline" => style::UNDERLINE,
+            "blink" => style::BLINK,
+            "reverse" => style::REVERSE,
+            "invisible" => style::INVISIBLE,
+            "struck" => style::STRUCK,
+            _ => style::NONE,
+        }
+    }
 
-	attributes
+    attributes
 }

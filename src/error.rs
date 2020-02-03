@@ -15,11 +15,12 @@
 // You should have received a copy of the GNU General Public License
 // along with cancer.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::fmt;
 use std::error;
-use std::io;
 use std::ffi;
-use std::sync::mpsc::{RecvError, SendError};
+use std::fmt;
+use std::io;
+
+use crossbeam_channel::{RecvError, SendError};
 
 use app_dirs;
 
@@ -27,148 +28,141 @@ pub type Result<T> = ::std::result::Result<T, Error>;
 
 #[derive(Debug)]
 pub enum Error {
-	Io(io::Error),
-	Message(String),
-	Nul(ffi::NulError),
-	Directory(app_dirs::AppDirsError),
-	Platform(Platform),
-	Unknown,
+    Io(io::Error),
+    Message(String),
+    Nul(ffi::NulError),
+    Directory(app_dirs::AppDirsError),
+    Platform(Platform),
+    Unknown,
 }
 
 impl From<io::Error> for Error {
-	fn from(value: io::Error) -> Self {
-		Error::Io(value)
-	}
+    fn from(value: io::Error) -> Self {
+        Error::Io(value)
+    }
 }
 
 impl From<ffi::NulError> for Error {
-	fn from(value: ffi::NulError) -> Self {
-		Error::Nul(value)
-	}
+    fn from(value: ffi::NulError) -> Self {
+        Error::Nul(value)
+    }
 }
 
 impl From<String> for Error {
-	fn from(value: String) -> Self {
-		Error::Message(value)
-	}
+    fn from(value: String) -> Self {
+        Error::Message(value)
+    }
 }
 
 impl From<app_dirs::AppDirsError> for Error {
-	fn from(value: app_dirs::AppDirsError) -> Self {
-		Error::Directory(value)
-	}
+    fn from(value: app_dirs::AppDirsError) -> Self {
+        Error::Directory(value)
+    }
 }
 
 impl From<()> for Error {
-	fn from(_value: ()) -> Self {
-		Error::Unknown
-	}
+    fn from(_value: ()) -> Self {
+        Error::Unknown
+    }
 }
 
 impl<T> From<SendError<T>> for Error {
-	fn from(_value: SendError<T>) -> Self {
-		Error::Message("send failed on closed channel".into())
-	}
+    fn from(_value: SendError<T>) -> Self {
+        Error::Message("send failed on closed channel".into())
+    }
 }
 
 impl From<RecvError> for Error {
-	fn from(_value: RecvError) -> Self {
-		Error::Message("recv failed on closed channel".into())
-	}
+    fn from(_value: RecvError) -> Self {
+        Error::Message("recv failed on closed channel".into())
+    }
 }
 
 #[derive(Debug)]
 pub enum Platform {
-	#[cfg(all(unix, not(target_os = "macos")))]
-	X11(platform::x11::Error),
+    #[cfg(all(unix, not(target_os = "macos")))]
+    X11(platform::x11::Error),
 
-	#[cfg(target_os = "macos")]
-	Quartz(platform::quartz::Error),
+    #[cfg(target_os = "macos")]
+    Quartz(platform::quartz::Error),
 }
 
 #[cfg(all(unix, not(target_os = "macos")))]
 pub mod platform {
-	pub mod x11 {
-		use super::super::{Error as Err, Platform};
-		use xcb;
+    pub mod x11 {
+        use super::super::{Error as Err, Platform};
+        use xcb;
 
-		#[derive(Debug)]
-		pub enum Error {
-			MissingExtension,
-			MissingDepth(u8),
-			Request(u8, u8),
-			Connection(xcb::ConnError),
-		}
+        #[derive(Debug)]
+        pub enum Error {
+            MissingExtension,
+            MissingDepth(u8),
+            Request(u8, u8),
+            Connection(xcb::ConnError),
+        }
 
-		impl From<Error> for Err {
-			fn from(value: Error) -> Err {
-				Err::Platform(Platform::X11(value))
-			}
-		}
+        impl From<Error> for Err {
+            fn from(value: Error) -> Err {
+                Err::Platform(Platform::X11(value))
+            }
+        }
 
-		impl From<xcb::ConnError> for Err {
-			fn from(value: xcb::ConnError) -> Err {
-				Err::Platform(Platform::X11(Error::Connection(value)))
-			}
-		}
+        impl From<xcb::ConnError> for Err {
+            fn from(value: xcb::ConnError) -> Err {
+                Err::Platform(Platform::X11(Error::Connection(value)))
+            }
+        }
 
-		impl<T> From<xcb::Error<T>> for Err {
-			fn from(value: xcb::Error<T>) -> Err {
-				Err::Platform(Platform::X11(Error::Request(value.response_type(), value.error_code())))
-			}
-		}
-	}
+        impl<T> From<xcb::Error<T>> for Err {
+            fn from(value: xcb::Error<T>) -> Err {
+                Err::Platform(Platform::X11(Error::Request(
+                    value.response_type(),
+                    value.error_code(),
+                )))
+            }
+        }
+    }
 }
 
 #[cfg(target_os = "macos")]
 pub mod platform {
-	pub mod quartz {
-		pub type Error = ();
-	}
+    pub mod quartz {
+        pub type Error = ();
+    }
 }
 
 impl fmt::Display for Error {
-	fn fmt(&self, f: &mut fmt::Formatter) -> ::std::result::Result<(), fmt::Error> {
-		f.write_str(error::Error::description(self))
-	}
+    fn fmt(&self, f: &mut fmt::Formatter) -> ::std::result::Result<(), fmt::Error> {
+        f.write_str(error::Error::description(self))
+    }
 }
 
 impl error::Error for Error {
-	fn description(&self) -> &str {
-		match *self {
-			Error::Io(ref err) =>
-				err.description(),
+    fn description(&self) -> &str {
+        match *self {
+            Error::Io(ref err) => err.description(),
 
-			Error::Nul(ref err) =>
-				err.description(),
+            Error::Nul(ref err) => err.description(),
 
-			Error::Message(ref msg) =>
-				msg.as_ref(),
+            Error::Message(ref msg) => msg.as_ref(),
 
-			Error::Directory(ref err) =>
-				err.description(),
+            Error::Directory(ref err) => err.description(),
 
-			Error::Unknown =>
-				"Unknown error.",
+            Error::Unknown => "Unknown error.",
 
-			#[cfg(all(unix, not(target_os = "macos")))]
-			Error::Platform(Platform::X11(ref err)) => match *err {
-				platform::x11::Error::Request(..) =>
-					"An X request failed.",
+            #[cfg(all(unix, not(target_os = "macos")))]
+            Error::Platform(Platform::X11(ref err)) => match *err {
+                platform::x11::Error::Request(..) => "An X request failed.",
 
-				platform::x11::Error::MissingExtension =>
-					"A required X extension is missing.",
+                platform::x11::Error::MissingExtension => "A required X extension is missing.",
 
-				platform::x11::Error::MissingDepth(..) =>
-					"Missing visual depth.",
+                platform::x11::Error::MissingDepth(..) => "Missing visual depth.",
 
-				platform::x11::Error::Connection(..) =>
-					"Connection to the X display failed.",
-			},
+                platform::x11::Error::Connection(..) => "Connection to the X display failed.",
+            },
 
-			#[cfg(target_os = "macos")]
-			Error::Platform(Platform::Quartz(_)) =>
-				"Something happened :(",
-		}
-	}
+            #[cfg(target_os = "macos")]
+            Error::Platform(Platform::Quartz(_)) => "Something happened :(",
+        }
+    }
 }

@@ -24,5 +24,5 @@ pub use self::option::Options;
 mod renderer;
 pub use self::renderer::Renderer;
 
-mod standard;
 mod ligatures;
+mod standard;

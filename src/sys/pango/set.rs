@@ -18,21 +18,17 @@
 use ffi::pango::*;
 use libc::c_uint;
 
-use super::{Metrics, Font};
+use super::{Font, Metrics};
 
 #[derive(Debug)]
 pub struct Set(pub *mut PangoFontset);
 
 impl Set {
-	pub fn metrics(&self) -> Metrics {
-		unsafe {
-			Metrics(pango_fontset_get_metrics(self.0))
-		}
-	}
+    pub fn metrics(&self) -> Metrics {
+        unsafe { Metrics(pango_fontset_get_metrics(self.0)) }
+    }
 
-	pub fn font(&self, ch: char) -> Font {
-		unsafe {
-			Font(pango_fontset_get_font(self.0, ch as c_uint))
-		}
-	}
+    pub fn font(&self, ch: char) -> Font {
+        unsafe { Font(pango_fontset_get_font(self.0, ch as c_uint)) }
+    }
 }

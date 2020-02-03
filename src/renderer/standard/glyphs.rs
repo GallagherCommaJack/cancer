@@ -18,13 +18,13 @@
 use std::rc::Rc;
 use std::sync::Arc;
 
+use fnv::FnvHasher;
 use lru::LruCache;
 use std::hash::BuildHasherDefault;
-use fnv::FnvHasher;
 
-use sys::pango;
 use font::Font;
 use style;
+use sys::pango;
 
 /// Computed glyph cache.
 ///
@@ -32,67 +32,67 @@ use style;
 /// can be as small as a grapheme or as big as a full line of text.
 #[derive(Debug)]
 pub struct Glyphs {
-	font:  Arc<Font>,
-	inner: LruCache<Cluster, Rc<Computed>, BuildHasherDefault<FnvHasher>>,
+    font: Arc<Font>,
+    inner: LruCache<Cluster, Rc<Computed>, BuildHasherDefault<FnvHasher>>,
 }
 
 /// A cluster with text and attributes.
 #[derive(Hash, Eq, PartialEq, Clone, Debug)]
 pub struct Cluster {
-	text:  Rc<String>,
-	attrs: style::Attributes,
+    text: Rc<String>,
+    attrs: style::Attributes,
 }
 
 impl Cluster {
-	/// Create a new cluster.
-	pub fn new(text: Rc<String>, attrs: style::Attributes) -> Self {
-		Cluster {
-			text:  text,
-			attrs: attrs & (style::BOLD | style::FAINT | style::ITALIC),
-		}
-	}
+    /// Create a new cluster.
+    pub fn new(text: Rc<String>, attrs: style::Attributes) -> Self {
+        Cluster {
+            text: text,
+            attrs: attrs & (style::BOLD | style::FAINT | style::ITALIC),
+        }
+    }
 }
 
 /// The computed glyphs.
 #[derive(Debug)]
 pub struct Computed {
-	text:   Rc<String>,
-	glyphs: pango::GlyphItem,
+    text: Rc<String>,
+    glyphs: pango::GlyphItem,
 }
 
 impl Computed {
-	pub fn text(&self) -> &str {
-		&self.text
-	}
+    pub fn text(&self) -> &str {
+        &self.text
+    }
 
-	pub fn glyphs(&self) -> &pango::GlyphItem {
-		&self.glyphs
-	}
+    pub fn glyphs(&self) -> &pango::GlyphItem {
+        &self.glyphs
+    }
 }
 
 impl Glyphs {
-	/// Create a new cache.
-	pub fn new(size: usize, font: Arc<Font>) -> Self {
-		Glyphs {
-			font: font,
-			inner: LruCache::with_hasher(size, Default::default()),
-		}
-	}
+    /// Create a new cache.
+    pub fn new(size: usize, font: Arc<Font>) -> Self {
+        Glyphs {
+            font: font,
+            inner: LruCache::with_hasher(size, Default::default()),
+        }
+    }
 
-	/// Get a computed glyph.
-	pub fn compute(&mut self, string: Rc<String>, attrs: style::Attributes) -> Rc<Computed> {
-		let cluster = Cluster::new(string.clone(), attrs);
+    /// Get a computed glyph.
+    pub fn compute(&mut self, string: Rc<String>, attrs: style::Attributes) -> Rc<Computed> {
+        let cluster = Cluster::new(string.clone(), attrs);
 
-		if let Some(computed) = self.inner.get_mut(&cluster) {
-			return computed.clone();
-		}
+        if let Some(computed) = self.inner.get_mut(&cluster) {
+            return computed.clone();
+        }
 
-		let computed = Rc::new(Computed {
-			text:   cluster.text.clone(),
-			glyphs: self.font.shape(&*cluster.text, cluster.attrs),
-		});
+        let computed = Rc::new(Computed {
+            text: cluster.text.clone(),
+            glyphs: self.font.shape(&*cluster.text, cluster.attrs),
+        });
 
-		self.inner.insert(cluster, computed.clone());
-		computed
-	}
+        self.inner.insert(cluster, computed.clone());
+        computed
+    }
 }

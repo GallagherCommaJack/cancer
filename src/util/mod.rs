@@ -19,13 +19,11 @@
 mod macros;
 
 pub fn clamp<T: PartialOrd>(n: T, min: T, max: T) -> T {
-	if n > max {
-		max
-	}
-	else if n < min {
-		min
-	}
-	else {
-		n
-	}
+    if n > max {
+        max
+    } else if n < min {
+        min
+    } else {
+        n
+    }
 }

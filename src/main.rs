@@ -15,10 +15,10 @@
 // You should have received a copy of the GNU General Public License
 // along with cancer.  If not, see <http://www.gnu.org/licenses/>.
 
-#![feature(mpsc_select, conservative_impl_trait, slice_patterns)]
+#![feature(conservative_impl_trait, slice_patterns)]
 #![feature(trace_macros, type_ascription, inclusive_range_syntax)]
 #![feature(box_syntax, try_from)]
-
+#![allow(warnings)]
 #![cfg_attr(feature = "fuzzy", feature(plugin))]
 #![cfg_attr(feature = "fuzzy", plugin(afl_plugin))]
 #[cfg(feature = "fuzzy")]
@@ -31,22 +31,23 @@ extern crate env_logger;
 #[macro_use]
 extern crate bitflags;
 extern crate bit_vec;
+extern crate control_code as control;
+extern crate crossbeam_channel;
 extern crate fnv;
 extern crate itertools;
 extern crate lru_cache as lru;
-extern crate shlex;
-extern crate schedule_recv as timer;
 extern crate picto;
-extern crate control_code as control;
+extern crate schedule_recv as timer;
+extern crate shlex;
 
+extern crate tendril;
 extern crate unicode_segmentation;
 extern crate unicode_width;
-extern crate tendril;
 
-extern crate regex;
 extern crate app_dirs;
-extern crate toml;
 extern crate clap;
+extern crate regex;
+extern crate toml;
 use clap::{App, Arg, ArgMatches};
 
 extern crate libc;
@@ -82,122 +83,151 @@ mod platform;
 mod renderer;
 
 mod interface;
-mod terminal;
 mod overlay;
+mod terminal;
 
 #[cfg(not(feature = "fuzzy"))]
 fn main() {
-	use std::sync::Arc;
-	use std::sync::mpsc::{Sender, channel};
-	use std::iter;
-	use std::mem;
-	use std::io::Write;
-	use std::thread;
+    use std::io::Write;
+    use std::iter;
+    use std::mem;
+    use std::sync::Arc;
+    use std::thread;
 
-	use picto::Region;
-	use config::Config;
-	use font::Font;
-	use renderer::Renderer;
-	use interface::{Interface, Action};
-	use terminal::Terminal;
-	use overlay::Overlay;
-	use platform::{Window, Tty, Event, Proxy};
-	use platform::mouse::{self, Mouse};
+    use config::Config;
+    use crossbeam_channel::{select, unbounded as channel, Sender};
+    use font::Font;
+    use interface::{Action, Interface};
+    use overlay::Overlay;
+    use picto::Region;
+    use platform::mouse::{self, Mouse};
+    use platform::{Event, Proxy, Tty, Window};
+    use renderer::Renderer;
+    use terminal::Terminal;
 
-	env_logger::init();
+    env_logger::init();
 
-	let matches = App::new("cancer")
-		.version(env!("CARGO_PKG_VERSION"))
-		.author("meh. <meh@schizofreni.co>")
-		.arg(Arg::with_name("config")
-			.short("c")
-			.long("config")
-			.help("The path to the configuration file.")
-			.takes_value(true))
-		.arg(Arg::with_name("display")
-			.short("d")
-			.long("display")
-			.takes_value(true)
-			.help("The X11 display."))
-		.arg(Arg::with_name("execute")
-			.short("e")
-			.long("execute")
-			.takes_value(true)
-			.help("Program to execute."))
-		.arg(Arg::with_name("font")
-			.short("f")
-			.long("font")
-			.takes_value(true)
-			.help("Font to use with the terminal."))
-		.arg(Arg::with_name("name")
-			.short("n")
-			.long("name")
-			.takes_value(true)
-			.help("Name for the window."))
-		.arg(Arg::with_name("term")
-			.short("t")
-			.long("term")
-			.takes_value(true)
-			.help("Specify the TERM environment variable to use."))
-		.arg(Arg::with_name("title")
-			.long("title")
-			.takes_value(true)
-			.help("Specify the window title."))
-		.arg(Arg::with_name("tic")
-			.short("T")
-			.long("tic")
-			.help("Print the terminfo database to stdout and exit."))
-		.get_matches();
+    let matches = App::new("cancer")
+        .version(env!("CARGO_PKG_VERSION"))
+        .author("meh. <meh@schizofreni.co>")
+        .arg(
+            Arg::with_name("config")
+                .short("c")
+                .long("config")
+                .help("The path to the configuration file.")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("display")
+                .short("d")
+                .long("display")
+                .takes_value(true)
+                .help("The X11 display."),
+        )
+        .arg(
+            Arg::with_name("execute")
+                .short("e")
+                .long("execute")
+                .takes_value(true)
+                .help("Program to execute."),
+        )
+        .arg(
+            Arg::with_name("font")
+                .short("f")
+                .long("font")
+                .takes_value(true)
+                .help("Font to use with the terminal."),
+        )
+        .arg(
+            Arg::with_name("name")
+                .short("n")
+                .long("name")
+                .takes_value(true)
+                .help("Name for the window."),
+        )
+        .arg(
+            Arg::with_name("term")
+                .short("t")
+                .long("term")
+                .takes_value(true)
+                .help("Specify the TERM environment variable to use."),
+        )
+        .arg(
+            Arg::with_name("title")
+                .long("title")
+                .takes_value(true)
+                .help("Specify the window title."),
+        )
+        .arg(
+            Arg::with_name("tic")
+                .short("T")
+                .long("tic")
+                .help("Print the terminfo database to stdout and exit."),
+        )
+        .get_matches();
 
-	if matches.is_present("tic") {
-		print!("{}", include_str!("../assets/cancer.info"));
-		return;
-	}
+    if matches.is_present("tic") {
+        print!("{}", include_str!("../assets/cancer.info"));
+        return;
+    }
 
-	let config = Arc::new(Config::load(matches.value_of("config")).unwrap());
-	let font   = Arc::new(Font::load(matches.value_of("font").unwrap_or(config.style().font())).unwrap());
+    let config = Arc::new(Config::load(matches.value_of("config")).unwrap());
+    let font =
+        Arc::new(Font::load(matches.value_of("font").unwrap_or(config.style().font())).unwrap());
 
-	let mut window = Window::new(matches.value_of("name"), config.clone(), font.clone()).unwrap();
-	let     proxy  = window.proxy();
+    let mut window = Window::new(matches.value_of("name"), config.clone(), font.clone()).unwrap();
+    let proxy = window.proxy();
 
-	if let Some(title) = matches.value_of("title") {
-		proxy.set_title(title.into());
-	}
+    if let Some(title) = matches.value_of("title") {
+        proxy.set_title(title.into());
+    }
 
-	let _ = window.run(spawn(&matches, config.clone(), font.clone(), proxy).unwrap());
+    let _ = window.run(spawn(&matches, config.clone(), font.clone(), proxy).unwrap());
 
-	fn spawn<W: platform::Proxy + 'static>(matches: &ArgMatches, config: Arc<Config>, font: Arc<Font>, mut window: W) -> error::Result<Sender<Event>> {
-		let (sender, events) = channel();
-		window.prepare(sender.clone());
+    fn spawn<W: platform::Proxy + 'static>(
+        matches: &ArgMatches,
+        config: Arc<Config>,
+        font: Arc<Font>,
+        mut window: W,
+    ) -> error::Result<Sender<Event>> {
+        let (sender, events) = channel();
+        window.prepare(sender.clone());
 
-		let mut surface = window.surface().unwrap();
-		let     (w, h)  = window.dimensions();
+        let mut surface = window.surface().unwrap();
+        let (w, h) = window.dimensions();
 
-		let mut renderer = Renderer::new(config.clone(), font.clone(), &surface, w, h);
+        let mut renderer = Renderer::new(config.clone(), font.clone(), &surface, w, h);
 
-		let mut interface = Interface::from(Terminal::new(config.clone(),
-			(font.width(), font.height() + config.style().spacing()),
-			(renderer.columns(), renderer.rows()))?);
+        let mut interface = Interface::from(Terminal::new(
+            config.clone(),
+            (font.width(), font.height() + config.style().spacing()),
+            (renderer.columns(), renderer.rows()),
+        )?);
 
-		let mut tty = Tty::spawn(
-			matches.value_of("term").or_else(|| config.environment().term()),
-			matches.value_of("execute").or_else(|| config.environment().program()),
-			(font.width(), font.height() + config.style().spacing()),
-			(renderer.columns(), renderer.rows()))?;
+        let mut tty = Tty::spawn(
+            matches
+                .value_of("term")
+                .or_else(|| config.environment().term()),
+            matches
+                .value_of("execute")
+                .or_else(|| config.environment().program()),
+            (font.width(), font.height() + config.style().spacing()),
+            (renderer.columns(), renderer.rows()),
+        )?;
 
-		let mut focused = true;
-		let mut visible = true;
+        let mut focused = true;
+        let mut visible = true;
 
-		let     blink    = timer::periodic_ms(config.style().blink());
-		let mut blinking = true;
+        let blink = timer::periodic_ms(config.style().blink());
+        let mut blinking = true;
 
-		let (_batcher, mut batch) = channel();
-		let mut batching          = None;
-		let mut batched           = None;
+        let (_batcher, mut batch) = channel();
+        let mut batching = None;
+        let mut batched = None;
 
-		let input = tty.output();
+        let input = tty.output();
 
-		macro_rules! render {
+        macro_rules! render {
 			(options) => ({
 				let mut options = renderer::Options::empty();
 
@@ -282,174 +312,179 @@ fn main() {
 			});
 		}
 
-		thread::Builder::new().name("cancer::runner".into()).spawn(move || {
-			let _batcher = _batcher;
+        thread::Builder::new()
+            .name("cancer::runner".into())
+            .spawn(move || {
+                let _batcher = _batcher;
 
-			loop {
-				match batching.take() {
-					Some(true) => {
-						batched = Some(mem::replace(&mut batch,
-							timer::oneshot_ms(config.environment().batch().unwrap())));
-					}
+                loop {
+                    match batching.take() {
+                        Some(true) => {
+                            batched = Some(mem::replace(
+                                &mut batch,
+                                timer::oneshot_ms(config.environment().batch().unwrap()),
+                            ));
+                        }
 
-					Some(false) => {
-						if let Some(empty) = batched.take() {
-							batch = empty;
-							render!(interface.region().absolute());
-						}
-					}
+                        Some(false) => {
+                            if let Some(empty) = batched.take() {
+                                batch = empty;
+                                render!(interface.region().absolute());
+                            }
+                        }
 
-					None => ()
-				}
+                        None => (),
+                    }
 
-				select! {
-					_ = batch.recv() => {
-						batching = Some(false);
-					},
+                    select! {
+                    	recv(batch) -> _ => {
+                    		batching = Some(false);
+                    	},
 
-					_ = blink.recv() => {
-						blinking = !blinking;
+                    	recv(blink) -> _ => {
+                    		blinking = !blinking;
 
-						let blinked = interface.blinking(blinking);
-						if (!blinked.is_empty() || interface.cursor().blink()) && batched.is_none() {
-							render!(blinked);
-						}
-					},
+                    		let blinked = interface.blinking(blinking);
+                    		if (!blinked.is_empty() || interface.cursor().blink()) && batched.is_none() {
+                    			render!(blinked);
+                    		}
+                    	},
 
-					event = events.recv() => {
-						let event = try!(return event);
-						debug!(target: "cancer::runner", "{:?}", event);
+                    	recv(events) -> event => {
+                    		let event = try!(return event);
+                    		debug!(target: "cancer::runner", "{:?}", event);
 
-						match event {
-							Event::Closed => return,
+                    		match event {
+                    			Event::Closed => return,
 
-							Event::Show(value) => {
-								visible = value;
-							}
+                    			Event::Show(value) => {
+                    				visible = value;
+                    			}
 
-							Event::Redraw => {
-								let width   = renderer.width();
-								let height  = renderer.height();
-								let rows    = renderer.rows();
-								let columns = renderer.columns();
+                    			Event::Redraw => {
+                    				let width   = renderer.width();
+                    				let height  = renderer.height();
+                    				let rows    = renderer.rows();
+                    				let columns = renderer.columns();
 
-								window.render(&mut surface, ||
-									renderer.render(render!(options), Some(Region::from(0, 0, width, height)),
-										&interface, Region::from(0, 0, columns, rows).absolute()));
-							}
+                    				window.render(&mut surface, ||
+                    					renderer.render(render!(options), Some(Region::from(0, 0, width, height)),
+                    						&interface, Region::from(0, 0, columns, rows).absolute()));
+                    			}
 
-							Event::Damaged(region) => {
-								let damaged = renderer.damaged(&region);
+                    			Event::Damaged(region) => {
+                    				let damaged = renderer.damaged(&region);
 
-								window.render(&mut surface, ||
-									renderer.render(render!(options), Some(region), &interface, damaged.relative()));
-							}
+                    				window.render(&mut surface, ||
+                    					renderer.render(render!(options), Some(region), &interface, damaged.relative()));
+                    			}
 
-							Event::Focus(focus) => {
-								focused = focus;
-								try!(return interface.focus(focus, tty.by_ref()));
-								render!(iter::empty());
-							}
+                    			Event::Focus(focus) => {
+                    				focused = focus;
+                    				try!(return interface.focus(focus, tty.by_ref()));
+                    				render!(iter::empty());
+                    			}
 
-							Event::Resize(width, height) => {
-								if renderer.width() == width && renderer.height() == height {
-									continue;
-								}
+                    			Event::Resize(width, height) => {
+                    				if renderer.width() == width && renderer.height() == height {
+                    					continue;
+                    				}
 
-								if interface.overlay() {
-									interface = try!(return interface.into_inner(tty.by_ref())).into();
-								}
+                    				if interface.overlay() {
+                    					interface = try!(return interface.into_inner(tty.by_ref())).into();
+                    				}
 
-								surface = window.surface().unwrap();
-								renderer.resize(&surface, width, height);
+                    				surface = window.surface().unwrap();
+                    				renderer.resize(&surface, width, height);
 
-								let rows    = renderer.rows();
-								let columns = renderer.columns();
+                    				let rows    = renderer.rows();
+                    				let columns = renderer.columns();
 
-								if interface.columns() != columns || interface.rows() != rows {
-									try!(return tty.resize(columns, rows));
-									interface.resize(columns, rows);
-								}
-							}
+                    				if interface.columns() != columns || interface.rows() != rows {
+                    					try!(return tty.resize(columns, rows));
+                    					interface.resize(columns, rows);
+                    				}
+                    			}
 
-							Event::Paste(value) => {
-								try!(return interface.paste(&value, tty.by_ref()));
-								try!(return tty.flush());
-							}
+                    			Event::Paste(value) => {
+                    				try!(return interface.paste(&value, tty.by_ref()));
+                    				try!(return tty.flush());
+                    			}
 
-							Event::Key(key) => {
-								render!(handle interface.key(key, tty.by_ref()));
-							}
+                    			Event::Key(key) => {
+                    				render!(handle interface.key(key, tty.by_ref()));
+                    			}
 
-							Event::Mouse(mut event) => {
-								match event {
-									Mouse::Click(mouse::Click { ref mut position, .. }) |
-									Mouse::Motion(mouse::Motion { ref mut position, .. }) => {
-										if let Some((x, y)) = renderer.position(position.x, position.y) {
-											position.x = x;
-											position.y = y;
-										}
-										else {
-											continue;
-										}
-									}
-								}
+                    			Event::Mouse(mut event) => {
+                    				match event {
+                    					Mouse::Click(mouse::Click { ref mut position, .. }) |
+                    					Mouse::Motion(mouse::Motion { ref mut position, .. }) => {
+                    						if let Some((x, y)) = renderer.position(position.x, position.y) {
+                    							position.x = x;
+                    							position.y = y;
+                    						}
+                    						else {
+                    							continue;
+                    						}
+                    					}
+                    				}
 
-								render!(handle interface.mouse(event, tty.by_ref()));
-							}
-						}
-					},
+                    				render!(handle interface.mouse(event, tty.by_ref()));
+                    			}
+                    		}
+                    	},
 
-					input = input.recv() => {
-						render!(handle interface.input(&try!(return input), tty.by_ref()));
-					}
-				}
-			}
-		}).unwrap();
+                    	recv(input) -> input => {
+                    		render!(handle interface.input(&try!(return input), tty.by_ref()));
+                    	}
+                    }
+                }
+            })
+            .unwrap();
 
-		Ok(sender)
-	}
+        Ok(sender)
+    }
 }
 
 #[cfg(feature = "fuzzy")]
 fn main() {
-	use std::sync::Arc;
-	use std::fs::File;
-	use std::io::{Cursor, Read};
-	use std::panic::UnwindSafe;
+    use std::fs::File;
+    use std::io::{Cursor, Read};
+    use std::panic::UnwindSafe;
+    use std::sync::Arc;
 
-	use config::Config;
-	use terminal::Terminal;
+    use config::Config;
+    use terminal::Terminal;
 
-	env_logger::init();
+    env_logger::init();
 
-	let matches = App::new("cancer")
-		.version(env!("CARGO_PKG_VERSION"))
-		.author("meh. <meh@schizofreni.co>")
-		.arg(Arg::with_name("test")
-			.short("T")
-			.long("test")
-			.takes_value(true)
-			.help("Test a crasher."))
-		.get_matches();
+    let matches = App::new("cancer")
+        .version(env!("CARGO_PKG_VERSION"))
+        .author("meh. <meh@schizofreni.co>")
+        .arg(
+            Arg::with_name("test")
+                .short("T")
+                .long("test")
+                .takes_value(true)
+                .help("Test a crasher."),
+        )
+        .get_matches();
 
-	let mut terminal = Terminal::new(Arc::new(Config::default()),
-		(6, 11), (80, 24)).unwrap();
+    let mut terminal = Terminal::new(Arc::new(Config::default()), (6, 11), (80, 24)).unwrap();
 
-	if matches.is_present("test") {
-		let mut content = Vec::new();
-		let mut file    = File::open(matches.value_of("test").unwrap()).expect("cannot open crasher");
-		file.read_to_end(&mut content).unwrap();
+    if matches.is_present("test") {
+        let mut content = Vec::new();
+        let mut file = File::open(matches.value_of("test").unwrap()).expect("cannot open crasher");
+        file.read_to_end(&mut content).unwrap();
 
-		terminal.input(&content, Cursor::new(vec![])).unwrap();
-	}
-	else {
-		unsafe { afl::init() }
+        terminal.input(&content, Cursor::new(vec![])).unwrap();
+    } else {
+        unsafe { afl::init() }
 
-		impl UnwindSafe for Terminal { }
+        impl UnwindSafe for Terminal {}
 
-		afl::handle_bytes(move |input| {
-			terminal.input(&input, Cursor::new(vec![])).unwrap();
-		});
-	}
+        afl::handle_bytes(move |input| {
+            terminal.input(&input, Cursor::new(vec![])).unwrap();
+        });
+    }
 }

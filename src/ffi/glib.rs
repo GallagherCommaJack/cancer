@@ -19,14 +19,14 @@ use libc::c_void;
 
 #[repr(C)]
 pub struct GList {
-	pub data: *mut c_void,
-	pub next: *mut GList,
-	pub prev: *mut GList,
+    pub data: *mut c_void,
+    pub next: *mut GList,
+    pub prev: *mut GList,
 }
 
 extern "C" {
-	pub fn g_list_free(ptr: *mut GList);
+    pub fn g_list_free(ptr: *mut GList);
 
-	pub fn g_object_unref(ptr: *mut c_void);
-	pub fn g_object_ref(ptr: *mut c_void) -> *mut c_void;
+    pub fn g_object_unref(ptr: *mut c_void);
+    pub fn g_object_ref(ptr: *mut c_void) -> *mut c_void;
 }

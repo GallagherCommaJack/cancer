@@ -23,27 +23,27 @@ use terminal::Cell;
 /// A row within the view or scroll back.
 #[derive(PartialEq, Clone, Debug)]
 pub struct Row {
-	pub(super) inner:   VecDeque<Cell>,
-	pub(super) wrapped: bool,
+    pub(super) inner: VecDeque<Cell>,
+    pub(super) wrapped: bool,
 }
 
 impl Row {
-	/// Check if the `Row` is wrapping.
-	pub fn is_wrapped(&self) -> bool {
-		self.wrapped
-	}
+    /// Check if the `Row` is wrapping.
+    pub fn is_wrapped(&self) -> bool {
+        self.wrapped
+    }
 }
 
 impl Deref for Row {
-	type Target = VecDeque<Cell>;
+    type Target = VecDeque<Cell>;
 
-	fn deref(&self) -> &Self::Target {
-		&self.inner
-	}
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
 }
 
 impl DerefMut for Row {
-	fn deref_mut(&mut self) -> &mut Self::Target {
-		&mut self.inner
-	}
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
 }

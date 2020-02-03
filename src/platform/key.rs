@@ -17,150 +17,150 @@
 
 #[derive(Eq, Clone, Debug)]
 pub struct Key {
-	value:    Value,
-	modifier: Modifier,
-	lock:     Lock,
+    value: Value,
+    modifier: Modifier,
+    lock: Lock,
 }
 
 /// Implementation to ignore locks, they're just informational.
 impl PartialEq for Key {
-	fn eq(&self, other: &Key) -> bool {
-		self.modifier == other.modifier && self.value == other.value
-	}
+    fn eq(&self, other: &Key) -> bool {
+        self.modifier == other.modifier && self.value == other.value
+    }
 }
 
 bitflags! {
-	pub struct Modifier: u8 {
-		const ALT   = 1 << 0;
-		const CTRL  = 1 << 1;
-		const LOGO  = 1 << 2;
-		const SHIFT = 1 << 3;
-	}
+    pub struct Modifier: u8 {
+        const ALT   = 1 << 0;
+        const CTRL  = 1 << 1;
+        const LOGO  = 1 << 2;
+        const SHIFT = 1 << 3;
+    }
 }
 
 impl Default for Modifier {
-	fn default() -> Self {
-		Modifier::empty()
-	}
+    fn default() -> Self {
+        Modifier::empty()
+    }
 }
 
 bitflags! {
-	pub struct Lock: u8 {
-		const CAPS = 1 << 0;
-		const NUM  = 1 << 1;
-	}
+    pub struct Lock: u8 {
+        const CAPS = 1 << 0;
+        const NUM  = 1 << 1;
+    }
 }
 
 impl Default for Lock {
-	fn default() -> Self {
-		Lock::empty()
-	}
+    fn default() -> Self {
+        Lock::empty()
+    }
 }
 
 #[derive(Eq, PartialEq, Clone, Debug)]
 pub enum Value {
-	Char(String),
-	Button(Button),
-	Keypad(Keypad),
+    Char(String),
+    Button(Button),
+    Keypad(Keypad),
 }
 
 #[derive(Eq, PartialEq, Copy, Clone, Debug)]
 pub enum Button {
-	Tab,
-	Escape,
-	Backspace,
-	Enter,
-	Delete,
-	Insert,
-	Home,
-	End,
+    Tab,
+    Escape,
+    Backspace,
+    Enter,
+    Delete,
+    Insert,
+    Home,
+    End,
 
-	PageUp,
-	PageDown,
+    PageUp,
+    PageDown,
 
-	Up,
-	Down,
-	Right,
-	Left,
+    Up,
+    Down,
+    Right,
+    Left,
 
-	F(u8),
-	Menu,
+    F(u8),
+    Menu,
 }
 
 #[allow(dead_code)]
 #[derive(Eq, PartialEq, Copy, Clone, Debug)]
 pub enum Keypad {
-	Enter,
-	Home,
-	Begin,
-	End,
-	Insert,
+    Enter,
+    Home,
+    Begin,
+    End,
+    Insert,
 
-	Multiply,
-	Add,
-	Subtract,
-	Divide,
-	Decimal,
+    Multiply,
+    Add,
+    Subtract,
+    Divide,
+    Decimal,
 
-	PageUp,
-	PageDown,
+    PageUp,
+    PageDown,
 
-	Up,
-	Down,
-	Right,
-	Left,
+    Up,
+    Down,
+    Right,
+    Left,
 
-	Number(u8),
+    Number(u8),
 }
 
 impl From<String> for Value {
-	fn from(value: String) -> Value {
-		Value::Char(value)
-	}
+    fn from(value: String) -> Value {
+        Value::Char(value)
+    }
 }
 
 impl From<char> for Value {
-	fn from(value: char) -> Value {
-		let mut string = String::new();
-		string.push(value);
+    fn from(value: char) -> Value {
+        let mut string = String::new();
+        string.push(value);
 
-		Value::Char(string)
-	}
+        Value::Char(string)
+    }
 }
 
 impl From<Button> for Value {
-	fn from(value: Button) -> Value {
-		Value::Button(value)
-	}
+    fn from(value: Button) -> Value {
+        Value::Button(value)
+    }
 }
 
 impl From<Keypad> for Value {
-	fn from(value: Keypad) -> Value {
-		Value::Keypad(value)
-	}
+    fn from(value: Keypad) -> Value {
+        Value::Keypad(value)
+    }
 }
 
 impl Key {
-	pub fn new(value: Value, modifier: Modifier, lock: Lock) -> Self {
-		Key {
-			value:    value,
-			modifier: modifier,
-			lock:     lock,
-		}
-	}
+    pub fn new(value: Value, modifier: Modifier, lock: Lock) -> Self {
+        Key {
+            value: value,
+            modifier: modifier,
+            lock: lock,
+        }
+    }
 
-	/// Get the value.
-	pub fn value(&self) -> &Value {
-		&self.value
-	}
+    /// Get the value.
+    pub fn value(&self) -> &Value {
+        &self.value
+    }
 
-	/// Get the active modifiers.
-	pub fn modifier(&self) -> Modifier {
-		self.modifier
-	}
+    /// Get the active modifiers.
+    pub fn modifier(&self) -> Modifier {
+        self.modifier
+    }
 
-	/// Get the active locks.
-	pub fn lock(&self) -> Lock {
-		self.lock
-	}
+    /// Get the active locks.
+    pub fn lock(&self) -> Lock {
+        self.lock
+    }
 }

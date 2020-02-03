@@ -18,69 +18,69 @@
 use platform::Clipboard;
 
 pub enum Command {
-	None,
-	Exit,
-	Move(Move),
-	Scroll(Scroll),
-	Select(Select),
-	Copy(Clipboard),
-	Paste(Clipboard),
-	Hint(Hint),
+    None,
+    Exit,
+    Move(Move),
+    Scroll(Scroll),
+    Select(Select),
+    Copy(Clipboard),
+    Paste(Clipboard),
+    Hint(Hint),
 }
 
 pub enum Scroll {
-	Up(u32),
-	Down(u32),
-	PageUp(u32),
-	PageDown(u32),
-	Begin,
-	End,
-	To(u32),
+    Up(u32),
+    Down(u32),
+    PageUp(u32),
+    PageDown(u32),
+    Begin,
+    End,
+    To(u32),
 }
 
 pub enum Move {
-	Left(u32),
-	Right(u32),
-	Up(u32),
-	Down(u32),
-	Start,
-	End,
-	To(u32, u32),
-	Next(u32, Next),
-	Previous(u32, Previous),
+    Left(u32),
+    Right(u32),
+    Up(u32),
+    Down(u32),
+    Start,
+    End,
+    To(u32, u32),
+    Next(u32, Next),
+    Previous(u32, Previous),
 }
 
 pub enum Next {
-	Word(Word),
-	Match(Match),
+    Word(Word),
+    Match(Match),
 }
 
 pub enum Previous {
-	Word(Word),
-	Match(Match),
+    Word(Word),
+    Match(Match),
 }
 
 pub type Boundary = Box<Fn(&str) -> bool>;
 
 pub enum Word {
-	Start(Boundary),
-	End(Boundary),
+    Start(Boundary),
+    End(Boundary),
 }
 
 pub enum Match {
-	After(String),
-	Before(String),
+    After(String),
+    Before(String),
 }
 
 pub enum Select {
-	Normal,
-	Block,
-	Line,
+    Normal,
+    Block,
+    Line,
 }
 
 pub enum Hint {
-	Start(u32),
-	Pick(char),
-	Open,
-	Copy(Clipboard),
+    Start(u32),
+    Pick(char),
+    Open,
+    Copy(Clipboard),
 }

@@ -20,9 +20,9 @@ use ffi::glib::*;
 pub struct List(pub *mut GList);
 
 impl Drop for List {
-	fn drop(&mut self) {
-		unsafe {
-			g_list_free(self.0);
-		}
-	}
+    fn drop(&mut self) {
+        unsafe {
+            g_list_free(self.0);
+        }
+    }
 }

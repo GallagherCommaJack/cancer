@@ -15,115 +15,125 @@
 // You should have received a copy of the GNU General Public License
 // along with cancer.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::sync::Arc;
 use std::ops::Deref;
+use std::sync::Arc;
 
-use picto::Region;
-use sys::cairo;
 use config::Config;
 use font::Font;
-use renderer::{State, Margin};
-use renderer::{option, Options};
-use renderer::{standard, ligatures};
 use interface::Interface;
+use picto::Region;
+use renderer::{ligatures, standard};
+use renderer::{option, Options};
+use renderer::{Margin, State};
+use sys::cairo;
 
 pub struct Renderer {
-	state: State,
-	mode:  Mode,
+    state: State,
+    mode: Mode,
 }
 
 pub enum Mode {
-	Standard(standard::Renderer),
-	Ligatures(ligatures::Renderer),
+    Standard(standard::Renderer),
+    Ligatures(ligatures::Renderer),
 }
 
 impl Renderer {
-	/// Get the window dimensions for the given grid.
-	pub fn dimensions(columns: u32, rows: u32, config: &Config, font: &Font) -> (u32, u32) {
-		let margin  = config.style().margin();
-		let spacing = config.style().spacing();
+    /// Get the window dimensions for the given grid.
+    pub fn dimensions(columns: u32, rows: u32, config: &Config, font: &Font) -> (u32, u32) {
+        let margin = config.style().margin();
+        let spacing = config.style().spacing();
 
-		let width  = (columns * font.width()) + (margin * 2);
-		let height = (rows * (font.height() + spacing)) + (margin * 2);
+        let width = (columns * font.width()) + (margin * 2);
+        let height = (rows * (font.height() + spacing)) + (margin * 2);
 
-		(width, height)
-	}
+        (width, height)
+    }
 
-	pub fn new(config: Arc<Config>, font: Arc<Font>, surface: &cairo::Surface, width: u32, height: u32) -> Self {
-		let spacing = config.style().spacing();
+    pub fn new(
+        config: Arc<Config>,
+        font: Arc<Font>,
+        surface: &cairo::Surface,
+        width: u32,
+        height: u32,
+    ) -> Self {
+        let spacing = config.style().spacing();
 
-		let margin = Margin {
-			horizontal: config.style().margin() +
-				((width - (config.style().margin() * 2)) % font.width()) / 2,
+        let margin = Margin {
+            horizontal: config.style().margin()
+                + ((width - (config.style().margin() * 2)) % font.width()) / 2,
 
-			vertical: config.style().margin() +
-				((height - (config.style().margin() * 2)) % (font.height() + spacing)) / 2,
-		};
+            vertical: config.style().margin()
+                + ((height - (config.style().margin() * 2)) % (font.height() + spacing)) / 2,
+        };
 
-		let state = State {
-			config: config,
-			font:   font,
+        let state = State {
+            config: config,
+            font: font,
 
-			width:  width,
-			height: height,
-			margin: margin,
-		};
+            width: width,
+            height: height,
+            margin: margin,
+        };
 
-		let mode = if state.config().style().ligatures() {
-			Mode::Ligatures(ligatures::Renderer::new(surface, &state))
-		}
-		else {
-			Mode::Standard(standard::Renderer::new(surface, &state))
-		};
+        let mode = if state.config().style().ligatures() {
+            Mode::Ligatures(ligatures::Renderer::new(surface, &state))
+        } else {
+            Mode::Standard(standard::Renderer::new(surface, &state))
+        };
 
-		Renderer {
-			state: state,
-			mode:  mode,
-		}
-	}
+        Renderer {
+            state: state,
+            mode: mode,
+        }
+    }
 
-	/// Resize the renderer viewport.
-	pub fn resize(&mut self, surface: &cairo::Surface, width: u32, height: u32) {
-		let (mode, state) = (&mut self.mode, &mut self.state);
+    /// Resize the renderer viewport.
+    pub fn resize(&mut self, surface: &cairo::Surface, width: u32, height: u32) {
+        let (mode, state) = (&mut self.mode, &mut self.state);
 
-		state.resize(width, height);
+        state.resize(width, height);
 
-		match *mode {
-			Mode::Standard(ref mut renderer) =>
-				renderer.resize(surface, state),
+        match *mode {
+            Mode::Standard(ref mut renderer) => renderer.resize(surface, state),
 
-			Mode::Ligatures(ref mut renderer) =>
-				renderer.resize(surface, state),
-		}
-	}
+            Mode::Ligatures(ref mut renderer) => renderer.resize(surface, state),
+        }
+    }
 
-	/// Render the given changes.
-	pub fn render<I>(&mut self, mut options: Options, region: Option<Region>, interface: &Interface, iter: I)
-		where I: Iterator<Item = (u32, u32)>
-	{
-		let (mode, state) = (&mut self.mode, &self.state);
+    /// Render the given changes.
+    pub fn render<I>(
+        &mut self,
+        mut options: Options,
+        region: Option<Region>,
+        interface: &Interface,
+        iter: I,
+    ) where
+        I: Iterator<Item = (u32, u32)>,
+    {
+        let (mode, state) = (&mut self.mode, &self.state);
 
-		if region.is_some() {
-			options.insert(option::DAMAGE);
-		}
-		else {
-			options.remove(option::DAMAGE);
-		}
+        if region.is_some() {
+            options.insert(option::DAMAGE);
+        } else {
+            options.remove(option::DAMAGE);
+        }
 
-		match *mode {
-			Mode::Standard(ref mut renderer) =>
-				renderer.render(state, options, region, interface, iter),
+        match *mode {
+            Mode::Standard(ref mut renderer) => {
+                renderer.render(state, options, region, interface, iter)
+            }
 
-			Mode::Ligatures(ref mut renderer) =>
-				renderer.render(state, options, region, interface, iter),
-		}
-	}
+            Mode::Ligatures(ref mut renderer) => {
+                renderer.render(state, options, region, interface, iter)
+            }
+        }
+    }
 }
 
 impl Deref for Renderer {
-	type Target = State;
+    type Target = State;
 
-	fn deref(&self) -> &Self::Target {
-		&self.state
-	}
+    fn deref(&self) -> &Self::Target {
+        &self.state
+    }
 }

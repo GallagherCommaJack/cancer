@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU General Public License
 // along with cancer.  If not, see <http://www.gnu.org/licenses/>.
 
-use ffi::pango::*;
 use ffi::glib::*;
+use ffi::pango::*;
 
 use super::Description;
 
@@ -24,25 +24,21 @@ use super::Description;
 pub struct Font(pub *mut PangoFont);
 
 impl Font {
-	pub fn description(&self) -> Description {
-		unsafe {
-			Description(pango_font_describe(self.0))
-		}
-	}
+    pub fn description(&self) -> Description {
+        unsafe { Description(pango_font_describe(self.0)) }
+    }
 }
 
 impl Clone for Font {
-	fn clone(&self) -> Self {
-		unsafe {
-			Font(g_object_ref(self.0 as *mut _) as *mut _)
-		}
-	}
+    fn clone(&self) -> Self {
+        unsafe { Font(g_object_ref(self.0 as *mut _) as *mut _) }
+    }
 }
 
 impl Drop for Font {
-	fn drop(&mut self) {
-		unsafe {
-			g_object_unref(self.0 as *mut _);
-		}
-	}
+    fn drop(&mut self) {
+        unsafe {
+            g_object_unref(self.0 as *mut _);
+        }
+    }
 }

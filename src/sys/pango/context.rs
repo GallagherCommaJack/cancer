@@ -17,41 +17,41 @@
 
 use std::ptr;
 
-use ffi::pango::*;
 use ffi::glib::*;
+use ffi::pango::*;
 
-use super::{Description, Map, Set, Font};
+use super::{Description, Font, Map, Set};
 
 #[derive(Debug)]
 pub struct Context(pub *mut PangoContext);
 
 impl Context {
-	pub fn new(map: &Map) -> Self {
-		unsafe {
-			Context(pango_font_map_create_context(map.0))
-		}
-	}
+    pub fn new(map: &Map) -> Self {
+        unsafe { Context(pango_font_map_create_context(map.0)) }
+    }
 
-	pub fn font(&self, desc: &Description) -> Option<Font> {
-		unsafe {
-			pango_context_load_font(self.0, desc.0)
-				.as_mut().map(|v| Font(v as *mut _))
-		}
-	}
+    pub fn font(&self, desc: &Description) -> Option<Font> {
+        unsafe {
+            pango_context_load_font(self.0, desc.0)
+                .as_mut()
+                .map(|v| Font(v as *mut _))
+        }
+    }
 
-	pub fn fonts(&self, desc: &Description) -> Option<Set> {
-		unsafe {
-			pango_context_set_font_description(self.0, desc.0);
-			pango_context_load_fontset(self.0, desc.0, ptr::null_mut())
-				.as_mut().map(|v| Set(v as *mut _))
-		}
-	}
+    pub fn fonts(&self, desc: &Description) -> Option<Set> {
+        unsafe {
+            pango_context_set_font_description(self.0, desc.0);
+            pango_context_load_fontset(self.0, desc.0, ptr::null_mut())
+                .as_mut()
+                .map(|v| Set(v as *mut _))
+        }
+    }
 }
 
 impl Drop for Context {
-	fn drop(&mut self) {
-		unsafe {
-			g_object_unref(self.0 as *mut _);
-		}
-	}
+    fn drop(&mut self) {
+        unsafe {
+            g_object_unref(self.0 as *mut _);
+        }
+    }
 }

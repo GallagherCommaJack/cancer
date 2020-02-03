@@ -15,33 +15,33 @@
 // You should have received a copy of the GNU General Public License
 // along with cancer.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::mem;
 use ffi::pango::*;
-use sys::pango::{Item, GlyphString};
+use std::mem;
+use sys::pango::{GlyphString, Item};
 
 #[derive(Debug)]
 pub struct GlyphItem(pub PangoGlyphItem);
 
 impl GlyphItem {
-	pub fn new(item: Item, string: GlyphString) -> Self {
-		let item_ptr   = item.0;
-		let string_ptr = string.0;
+    pub fn new(item: Item, string: GlyphString) -> Self {
+        let item_ptr = item.0;
+        let string_ptr = string.0;
 
-		mem::forget(item);
-		mem::forget(string);
+        mem::forget(item);
+        mem::forget(string);
 
-		GlyphItem(PangoGlyphItem {
-			item:   item_ptr,
-			string: string_ptr,
-		})
-	}
+        GlyphItem(PangoGlyphItem {
+            item: item_ptr,
+            string: string_ptr,
+        })
+    }
 }
 
 impl Drop for GlyphItem {
-	fn drop(&mut self) {
-		unsafe {
-			pango_item_free(self.0.item);
-			pango_glyph_string_free(self.0.string);
-		}
-	}
+    fn drop(&mut self) {
+        unsafe {
+            pango_item_free(self.0.item);
+            pango_glyph_string_free(self.0.string);
+        }
+    }
 }

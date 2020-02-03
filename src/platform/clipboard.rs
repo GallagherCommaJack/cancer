@@ -17,23 +17,23 @@
 
 #[derive(Eq, PartialEq, Copy, Clone, Debug)]
 pub enum Clipboard {
-	Primary,
-	Secondary,
-	System,
+    Primary,
+    Secondary,
+    System,
 }
 
 impl Default for Clipboard {
-	fn default() -> Self {
-		Clipboard::System
-	}
+    fn default() -> Self {
+        Clipboard::System
+    }
 }
 
 impl<T: AsRef<str>> From<T> for Clipboard {
-	fn from(value: T) -> Self {
-		match &*value.as_ref().to_uppercase() {
-			"PRIMARY"   => Clipboard::Primary,
-			"SECONDARY" => Clipboard::Secondary,
-			_           => Clipboard::System,
-		}
-	}
+    fn from(value: T) -> Self {
+        match &*value.as_ref().to_uppercase() {
+            "PRIMARY" => Clipboard::Primary,
+            "SECONDARY" => Clipboard::Secondary,
+            _ => Clipboard::System,
+        }
+    }
 }

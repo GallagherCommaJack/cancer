@@ -21,30 +21,30 @@ use platform::{Key, Mouse};
 #[allow(dead_code)]
 #[derive(Eq, PartialEq, Clone, Debug)]
 pub enum Event {
-	/// The window has been closed.
-	Closed,
+    /// The window has been closed.
+    Closed,
 
-	/// The window is being shown or hidden.
-	Show(bool),
+    /// The window is being shown or hidden.
+    Show(bool),
 
-	/// Redraw the whole screen.
-	Redraw,
+    /// Redraw the whole screen.
+    Redraw,
 
-	/// Redraw the specified region.
-	Damaged(Region),
+    /// Redraw the specified region.
+    Damaged(Region),
 
-	/// Focus change.
-	Focus(bool),
+    /// Focus change.
+    Focus(bool),
 
-	/// Window resize.
-	Resize(u32, u32),
+    /// Window resize.
+    Resize(u32, u32),
 
-	/// Paste request.
-	Paste(Vec<u8>),
+    /// Paste request.
+    Paste(Vec<u8>),
 
-	/// Key press.
-	Key(Key),
+    /// Key press.
+    Key(Key),
 
-	/// Mouse event.
-	Mouse(Mouse),
+    /// Mouse event.
+    Mouse(Mouse),
 }

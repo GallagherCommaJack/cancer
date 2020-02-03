@@ -23,59 +23,61 @@ use ffi::pango::*;
 pub struct Metrics(pub *mut PangoFontMetrics);
 
 impl Metrics {
-	pub fn ascent(&self) -> u32 {
-		unsafe {
-			pixels(pango_font_metrics_get_ascent(self.0))
-		}
-	}
+    pub fn ascent(&self) -> u32 {
+        unsafe { pixels(pango_font_metrics_get_ascent(self.0)) }
+    }
 
-	pub fn descent(&self) -> u32 {
-		unsafe {
-			pixels(pango_font_metrics_get_descent(self.0))
-		}
-	}
+    pub fn descent(&self) -> u32 {
+        unsafe { pixels(pango_font_metrics_get_descent(self.0)) }
+    }
 
-	pub fn height(&self) -> u32 {
-		self.descent() + self.ascent()
-	}
+    pub fn height(&self) -> u32 {
+        self.descent() + self.ascent()
+    }
 
-	pub fn width(&self) -> u32 {
-		unsafe {
-			pixels(pango_font_metrics_get_approximate_digit_width(self.0))
-		}
-	}
+    pub fn width(&self) -> u32 {
+        unsafe { pixels(pango_font_metrics_get_approximate_digit_width(self.0)) }
+    }
 
-	pub fn underline(&self) -> (u32, u32) {
-		unsafe {
-			(pixels(pango_font_metrics_get_underline_thickness(self.0)),
-			 position(pango_font_metrics_get_underline_position(self.0),
-			          pango_font_metrics_get_ascent(self.0)))
-		}
-	}
+    pub fn underline(&self) -> (u32, u32) {
+        unsafe {
+            (
+                pixels(pango_font_metrics_get_underline_thickness(self.0)),
+                position(
+                    pango_font_metrics_get_underline_position(self.0),
+                    pango_font_metrics_get_ascent(self.0),
+                ),
+            )
+        }
+    }
 
-	pub fn strikethrough(&self) -> (u32, u32) {
-		unsafe {
-			(pixels(pango_font_metrics_get_strikethrough_thickness(self.0)),
-			 position(pango_font_metrics_get_strikethrough_position(self.0),
-			          pango_font_metrics_get_ascent(self.0)))
-		}
-	}
+    pub fn strikethrough(&self) -> (u32, u32) {
+        unsafe {
+            (
+                pixels(pango_font_metrics_get_strikethrough_thickness(self.0)),
+                position(
+                    pango_font_metrics_get_strikethrough_position(self.0),
+                    pango_font_metrics_get_ascent(self.0),
+                ),
+            )
+        }
+    }
 }
 
 impl Drop for Metrics {
-	fn drop(&mut self) {
-		unsafe {
-			pango_font_metrics_unref(self.0);
-		}
-	}
+    fn drop(&mut self) {
+        unsafe {
+            pango_font_metrics_unref(self.0);
+        }
+    }
 }
 
 #[inline(always)]
 fn pixels(units: c_int) -> u32 {
-	(units.abs() as u32 + 512) >> 10
+    (units.abs() as u32 + 512) >> 10
 }
 
 #[inline(always)]
 fn position(units: c_int, ascent: c_int) -> u32 {
-	pixels(ascent - units)
+    pixels(ascent - units)
 }

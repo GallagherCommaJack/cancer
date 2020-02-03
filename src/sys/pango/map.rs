@@ -15,24 +15,22 @@
 // You should have received a copy of the GNU General Public License
 // along with cancer.  If not, see <http://www.gnu.org/licenses/>.
 
-use ffi::pango::*;
 use ffi::glib::*;
+use ffi::pango::*;
 
 #[derive(Debug)]
 pub struct Map(pub *mut PangoFontMap);
 
 impl Map {
-	pub fn new() -> Self {
-		unsafe {
-			Map(pango_cairo_font_map_new())
-		}
-	}
+    pub fn new() -> Self {
+        unsafe { Map(pango_cairo_font_map_new()) }
+    }
 }
 
 impl Drop for Map {
-	fn drop(&mut self) {
-		unsafe {
-			g_object_unref(self.0 as *mut _);
-		}
-	}
+    fn drop(&mut self) {
+        unsafe {
+            g_object_unref(self.0 as *mut _);
+        }
+    }
 }
