@@ -311,7 +311,7 @@ impl Overlay {
                 "e" if key.modifier().is_empty() && prefix == Some(b'g') => {
                     Command::Move(command::Move::Previous(
                         times.unwrap_or(1),
-                        command::Previous::Word(command::Word::End(box is_boundary)),
+                        command::Previous::Word(command::Word::End(Box::new(is_boundary))),
                     ))
                 }
 
@@ -394,17 +394,17 @@ impl Overlay {
 
                 "w" if key.modifier().is_empty() => Command::Move(command::Move::Next(
                     times.unwrap_or(1),
-                    command::Next::Word(command::Word::Start(box is_boundary)),
+                    command::Next::Word(command::Word::Start(Box::new(is_boundary))),
                 )),
 
                 "b" if key.modifier().is_empty() => Command::Move(command::Move::Previous(
                     times.unwrap_or(1),
-                    command::Previous::Word(command::Word::Start(box is_boundary)),
+                    command::Previous::Word(command::Word::Start(Box::new(is_boundary))),
                 )),
 
                 "e" if key.modifier().is_empty() => Command::Move(command::Move::Next(
                     times.unwrap_or(1),
-                    command::Next::Word(command::Word::End(box is_boundary)),
+                    command::Next::Word(command::Word::End(Box::new(is_boundary))),
                 )),
 
                 // Selection commands.

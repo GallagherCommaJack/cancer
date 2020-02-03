@@ -15,9 +15,6 @@
 // You should have received a copy of the GNU General Public License
 // along with cancer.  If not, see <http://www.gnu.org/licenses/>.
 
-#![feature(conservative_impl_trait, slice_patterns)]
-#![feature(trace_macros, type_ascription, inclusive_range_syntax)]
-#![feature(box_syntax, try_from)]
 #![allow(warnings)]
 #![cfg_attr(feature = "fuzzy", feature(plugin))]
 #![cfg_attr(feature = "fuzzy", plugin(afl_plugin))]

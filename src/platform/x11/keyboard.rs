@@ -306,7 +306,9 @@ impl Keyboard {
                 | xkb::key::F33
                 | xkb::key::F34
                 | xkb::key::F35 => {
-                    Button::F((symbol.into(): u32 - xkb::key::F1.into(): u32 + 1) as u8).into()
+                    let symbol_u32: u32 = symbol.into();
+                    let key_u32: u32 = xkb::key::KP_0.into();
+                    Button::F(((symbol_u32 - key_u32 + 1) as u8)).into()
                 }
 
                 xkb::key::Menu => Button::Menu.into(),
@@ -353,7 +355,9 @@ impl Keyboard {
                 | xkb::key::KP_7
                 | xkb::key::KP_8
                 | xkb::key::KP_9 => {
-                    Keypad::Number(((symbol.into(): u32 - xkb::key::KP_0.into(): u32) as u8)).into()
+                    let symbol_u32: u32 = symbol.into();
+                    let key_u32: u32 = xkb::key::KP_0.into();
+                    Keypad::Number(((symbol_u32 - key_u32) as u8)).into()
                 }
 
                 xkb::key::space => String::from(if modifier.contains(key::CTRL) {
